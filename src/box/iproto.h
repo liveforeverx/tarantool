@@ -29,5 +29,5 @@
  * SUCH DAMAGE.
  */
 void
-iproto_init(struct evio_service *service);
+iproto_init(struct evio_service *service, const struct tt_uuid *local_uuid);
 #endif

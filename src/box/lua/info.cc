@@ -51,22 +51,22 @@ lbox_info_replication(struct lua_State *L)
 	lua_newtable(L);
 
 	lua_pushstring(L, "status");
-	lua_pushstring(L, r->remote.status);
+	lua_pushstring(L, r->remote[0].status);
 	lua_settable(L, -3);
 
-	if (r->remote.reader) {
+	if (r->remote[0].reader) {
 		lua_pushstring(L, "lag");
-		lua_pushnumber(L, r->remote.lag);
+		lua_pushnumber(L, r->remote[0].lag);
 		lua_settable(L, -3);
 
 		lua_pushstring(L, "idle");
-		lua_pushnumber(L, ev_now(loop()) - r->remote.last_row_time);
+		lua_pushnumber(L, ev_now(loop()) - r->remote[0].last_row_time);
 		lua_settable(L, -3);
 
-		if (r->remote.reader->exception) {
+		if (r->remote[0].reader->exception) {
 			lua_pushstring(L, "message");
 			lua_pushstring(L,
-				       r->remote.reader->exception->errmsg());
+				       r->remote[0].reader->exception->errmsg());
 			lua_settable(L, -3);
 		}
 	}

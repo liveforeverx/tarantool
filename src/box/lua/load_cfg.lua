@@ -25,6 +25,18 @@ local default_sophia_cfg = {
     compression  = "none"
 }
 
+local default_replication_cfg = {
+    source            = {},
+    bsync             = 0,
+    max_host_queue    = 1000,
+    read_timeout      = 3.5,
+    write_timeout     = 3.5,
+    ping_timeout      = 10.0,
+    election_timeout  = 5.0,
+    operation_timeout = 10.0,
+    submit_timeout    = 0.1
+}
+
 -- all available options
 local default_cfg = {
     listen              = nil,
@@ -59,6 +71,8 @@ local default_cfg = {
     -- snapshot_daemon
     snapshot_period     = 0,        -- 0 = disabled
     snapshot_count      = 6,
+
+    replication         = default_replication_cfg,
 }
 
 -- see template_cfg below
@@ -68,6 +82,18 @@ local sophia_template_cfg = {
     node_size    = 'number',
     page_size    = 'number',
     compression  = 'string'
+}
+
+local replication_template_cfg = {
+    source            = 'table',
+    bsync             = 'number',
+    max_host_queue    = 'number',
+    read_timeout      = 'number',
+    write_timeout     = 'number',
+    ping_timeout      = 'number',
+    election_timeout  = 'number',
+    operation_timeout = 'number',
+    submit_timeout    = 'number'
 }
 
 -- types of available options
@@ -103,6 +129,7 @@ local template_cfg = {
     coredump            = 'boolean',
     snapshot_period     = 'number',
     snapshot_count      = 'number',
+    replication         = replication_template_cfg,
 }
 
 local function normalize_uri(port)

@@ -276,14 +276,13 @@ static int iobuf_max_pool_size()
 	return 18 * iobuf_readahead;
 }
 
-SLIST_HEAD(iobuf_cache, iobuf) iobuf_cache;
+__thread SLIST_HEAD(iobuf_cache, iobuf) iobuf_cache;
 
 /** Create an instance of input/output buffer or take one from cache. */
 struct iobuf *
 iobuf_new(const char *name)
 {
 	/* Does not work in multiple cords yet. */
-	assert(cord_is_main());
 	struct iobuf *iobuf;
 	if (SLIST_EMPTY(&iobuf_cache)) {
 		iobuf = (struct iobuf *) mempool_alloc(&iobuf_pool);
@@ -355,6 +354,7 @@ iobuf_reset(struct iobuf *iobuf)
 void
 iobuf_init()
 {
+	SLIST_INIT(&iobuf_cache);
 	mempool_create(&iobuf_pool, &cord()->slabc, sizeof(struct iobuf));
 }
 

@@ -1,3 +1,5 @@
+#ifndef TARANTOOL_BOX_BSYNC_H_INCLUDED
+#define TARANTOOL_BOX_BSYNC_H_INCLUDED
 /*
  * Redistribution and use in source and binary forms, with or
  * without modification, are permitted provided that the following
@@ -26,38 +28,51 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include "user.h"
-#include "user_def.h"
-#include "session.h"
+#include <stdbool.h>
 
-static char zero_hash[SCRAMBLE_SIZE];
+#include "queue.h"
+#include "fiber.h"
+#include "vclock.h"
+#include "recovery.h"
 
-void
-authenticate(const char *user_name, uint32_t len,
-	     const char *scramble, uint32_t scramble_len)
-{
-	struct user *user = user_cache_find_by_name(user_name, len);
-	struct session *session = current_session();
-	/*
-	 * Allow authenticating back to GUEST user without
-	 * checking a password. This is useful for connection
-	 * pooling.
-	 */
-	if (scramble == NULL && user->uid == GUEST &&
-	    memcmp(user->hash2, zero_hash, SCRAMBLE_SIZE) == 0) {
-		/* No password is set for GUEST, OK. */
-		goto ok;
-	}
-	if (scramble_len != SCRAMBLE_SIZE) {
-		/* Authentication mechanism, data. */
-		tnt_raise(ClientError, ER_INVALID_MSGPACK,
-			   "invalid scramble size");
-	}
+#if defined(__cplusplus)
+extern "C" {
+#endif /* defined(__cplusplus) */
 
-	if (scramble_check(scramble, session->salt, user->hash2))
-		tnt_raise(ClientError, ER_PASSWORD_MISMATCH, user->name);
+void bsync_init(struct recovery_state *r);
+void bsync_start(struct recovery_state *r);
+int bsync_write(struct recovery_state *r, struct txn_stmt *stmt);
+void bsync_writer_stop(struct recovery_state *r);
 
-ok:
-	credentials_init(&session->credentials, user);
-}
+void bsync_push_connection(int remote_id);
 
+/*
+ * Return id of server who will send snapshot
+ */
+int bsync_join();
+
+/*
+ * Return id of server who will send xlogs
+ */
+int bsync_subscribe();
+
+int bsync_ready_subscribe();
+
+bool bsync_process_join(int fd, struct tt_uuid *uuid);
+
+bool bsync_process_subscribe(int fd, struct tt_uuid *uuid,
+			struct recovery_state *state);
+
+void bsync_leave_local_standby_mode();
+
+bool bsync_follow(struct recovery_state *r);
+
+void bsync_recovery_stop(struct recovery_state *r);
+
+void bsync_recovery_fail(struct recovery_state *r);
+
+#if defined(__cplusplus)
+} /* extern "C" */
+#endif /* defined(__cplusplus) */
+
+#endif /* TARANTOOL_BOX_BSYNC_H_INCLUDED */

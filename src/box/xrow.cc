@@ -34,6 +34,57 @@
 #include "scramble.h"
 #include "third_party/base64.h"
 #include "iproto_constants.h"
+#include "tarantool.h"
+#include "box/session.h"
+
+const char *
+xrow_encode_greeting(const char *salt, const struct tt_uuid *local_uuid)
+{
+	static __thread char greeting[IPROTO_GREETING_SIZE + 1];
+	char base64buf[SESSION_SEED_SIZE * 4 / 3 + 5];
+	assert(UUID_STR_LEN == 36);
+	base64_encode(salt, SESSION_SEED_SIZE, base64buf, sizeof(base64buf));
+	snprintf(greeting, sizeof(greeting),
+		 "Tarantool %.16s %.36s\n%-63s\n",
+		 tarantool_version(), tt_uuid_str(local_uuid), base64buf);
+	return greeting;
+}
+
+void
+xrow_decode_greeting(const char *pos, char *salt, struct tt_uuid *uuid)
+{
+	if (base64_decode(pos + 64, SCRAMBLE_BASE64_SIZE, salt,
+			  SCRAMBLE_SIZE) != SCRAMBLE_SIZE)
+		panic("invalid salt: %64s", pos + 64);
+	tt_uuid_from_strl(pos + 27, UUID_STR_LEN, uuid);
+}
+
+const char *
+xrow_decode_scramble(const char **pos, uint32_t *scramble_len)
+{
+	uint32_t part_count = mp_decode_array(pos);
+	if (part_count == 0)
+		return NULL;
+	if (part_count < 2) {
+		/* Expected at least: authentication mechanism and data. */
+		tnt_raise(ClientError, ER_INVALID_MSGPACK,
+			  "authentication request body");
+	}
+	mp_next(pos); /* Skip authentication mechanism. */
+	return mp_decode_str(pos, scramble_len);
+}
+
+void
+xrow_copy(const struct xrow_header *src, struct xrow_header *dst)
+{
+	memcpy(dst, src, sizeof(xrow_header));
+	for (int i = 0; i < src->bodycnt; ++i) {
+		dst->body[i].iov_base =
+			region_alloc(&fiber()->gc, dst->body[i].iov_len);
+		memcpy(dst->body[i].iov_base, src->body[i].iov_base,
+			dst->body[i].iov_len);
+	}
+}
 
 void
 xrow_header_decode(struct xrow_header *header, const char **pos,
@@ -71,6 +122,12 @@ error:
 			break;
 		case IPROTO_TIMESTAMP:
 			header->tm = mp_decode_double(pos);
+			break;
+		case IPROTO_BSYNC_COMMIT:
+			header->commit_sn = mp_decode_uint(pos);
+			break;
+		case IPROTO_BSYNC_ROLLBACK:
+			header->rollback_sn = mp_decode_uint(pos);
 			break;
 		default:
 			/* unknown header */
@@ -143,6 +200,18 @@ xrow_header_encode(const struct xrow_header *header, struct iovec *out)
 		map_size++;
 	}
 
+	if (header->commit_sn) {
+		d = mp_encode_uint(d, IPROTO_BSYNC_COMMIT);
+		d = mp_encode_uint(d, header->commit_sn);
+		map_size++;
+	}
+
+	if (header->rollback_sn) {
+		d = mp_encode_uint(d, IPROTO_BSYNC_ROLLBACK);
+		d = mp_encode_uint(d, header->rollback_sn);
+		map_size++;
+	}
+
 	assert(d <= data + HEADER_LEN_MAX);
 	mp_encode_map(data, map_size);
 	out->iov_base = data;
@@ -182,7 +251,7 @@ xrow_to_iovec(const struct xrow_header *row, struct iovec *out)
 }
 
 void
-xrow_encode_auth(struct xrow_header *packet, const char *greeting,
+xrow_encode_auth(struct xrow_header *packet, const void *salt,
 		 const char *login, size_t login_len,
 		 const char *password, size_t password_len)
 {
@@ -198,11 +267,7 @@ xrow_encode_auth(struct xrow_header *packet, const char *greeting,
 	d = mp_encode_uint(d, IPROTO_USER_NAME);
 	d = mp_encode_str(d, login, login_len);
 	if (password != NULL) { /* password can be omitted */
-		char salt[SCRAMBLE_SIZE];
 		char scramble[SCRAMBLE_SIZE];
-		if (base64_decode(greeting + 64, SCRAMBLE_BASE64_SIZE, salt,
-				  SCRAMBLE_SIZE) != SCRAMBLE_SIZE)
-			panic("invalid salt: %64s", greeting + 64);
 		scramble_prepare(scramble, salt, password, password_len);
 		d = mp_encode_uint(d, IPROTO_TUPLE);
 		d = mp_encode_array(d, 2);
@@ -217,10 +282,16 @@ xrow_encode_auth(struct xrow_header *packet, const char *greeting,
 	packet->type = IPROTO_AUTH;
 }
 
+uint32_t
+xrow_decode_error_code(struct xrow_header *row)
+{
+	return row->type & (IPROTO_TYPE_ERROR - 1);
+}
+
 void
 xrow_decode_error(struct xrow_header *row)
 {
-	uint32_t code = row->type & (IPROTO_TYPE_ERROR - 1);
+	uint32_t code = xrow_decode_error_code(row);
 
 	char error[TNT_ERRMSG_MAX] = { 0 };
 	const char *pos;
@@ -335,7 +406,6 @@ xrow_decode_subscribe(struct xrow_header *row, struct tt_uuid *cluster_uuid,
 			mp_next(&d); /* value */
 		}
 	}
-
 	if (lsnmap == NULL)
 		return;
 

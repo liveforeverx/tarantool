@@ -198,12 +198,52 @@ process_rw(struct request *request, struct port *port)
 	}
 }
 
-void
-request_decode(struct request *request, const char *data, uint32_t len)
+static void
+request_set_uint(void *data, uint8_t key, uint32_t v)
+{
+	switch (key) {
+	case IPROTO_SPACE_ID:
+		((struct request *)data)->space_id = v;
+		break;
+	case IPROTO_INDEX_ID:
+		((struct request *)data)->index_id = v;
+		break;
+	case IPROTO_OFFSET:
+		((struct request *)data)->offset = v;
+		break;
+	case IPROTO_LIMIT:
+		((struct request *)data)->limit = v;
+		break;
+	case IPROTO_ITERATOR:
+		((struct request *)data)->iterator = v;
+		break;
+	}
+}
+
+static void
+request_set_char(void *data, uint8_t key, const char *v, const char *v_end)
+{
+	switch (key) {
+	case IPROTO_TUPLE:
+		((struct request *)data)->tuple = v;
+		((struct request *)data)->tuple_end = v_end;
+		break;
+	case IPROTO_KEY:
+	case IPROTO_FUNCTION_NAME:
+	case IPROTO_USER_NAME:
+	case IPROTO_EXPR:
+		((struct request *)data)->key = v;
+		((struct request *)data)->key_end = v_end;
+		break;
+	}
+}
+
+static void
+request_decode_cb(const char *data, uint32_t len, uint32_t type,
+		  request_uint_f uint_f, request_char_f char_f, void *data_f)
 {
 	const char *end = data + len;
-	uint64_t key_map = iproto_body_key_map[request->type];
-
+	uint64_t key_map = iproto_body_key_map[type];
 	if (mp_typeof(*data) != MP_MAP || mp_check_map(data, end) > 0) {
 error:
 		tnt_raise(ClientError, ER_INVALID_MSGPACK, "packet body");
@@ -224,31 +264,18 @@ error:
 			goto error;
 		switch (key) {
 		case IPROTO_SPACE_ID:
-			request->space_id = mp_decode_uint(&value);
-			break;
 		case IPROTO_INDEX_ID:
-			request->index_id = mp_decode_uint(&value);
-			break;
 		case IPROTO_OFFSET:
-			request->offset = mp_decode_uint(&value);
-			break;
 		case IPROTO_LIMIT:
-			request->limit = mp_decode_uint(&value);
-			break;
 		case IPROTO_ITERATOR:
-			request->iterator = mp_decode_uint(&value);
+			uint_f(data_f, key, mp_decode_uint(&value));
 			break;
 		case IPROTO_TUPLE:
-			request->tuple = value;
-			request->tuple_end = data;
-			break;
 		case IPROTO_KEY:
 		case IPROTO_FUNCTION_NAME:
 		case IPROTO_USER_NAME:
 		case IPROTO_EXPR:
-			request->key = value;
-			request->key_end = data;
-		default:
+			char_f(data_f, key, value, data);
 			break;
 		}
 	}
@@ -259,7 +286,27 @@ error:
 	if (key_map) {
 		tnt_raise(ClientError, ER_MISSING_REQUEST_FIELD,
 			  iproto_key_strs[__builtin_ffsll((long long) key_map) - 1]);
-	  }
+	}
+}
+
+void
+request_decode(struct request *request, const char *data, uint32_t len)
+{
+	request_decode_cb(data, len, request->type, request_set_uint,
+		request_set_char, request);
+}
+
+void
+request_header_decode(struct xrow_header* xrow, request_uint_f uint_f,
+		      request_char_f char_f, void *data)
+{
+	try {
+		request_decode_cb(
+			(const char *)xrow->body[0].iov_base,
+			xrow->body[0].iov_len, xrow->type, uint_f, char_f, data);
+	} catch (...) {
+
+	}
 }
 
 int

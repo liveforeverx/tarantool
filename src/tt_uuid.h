@@ -124,6 +124,17 @@ tt_uuid_is_nil(const struct tt_uuid *uu)
 }
 
 /**
+ * \brief Set uuid value to nil
+ * \param uu UUID
+ */
+inline void
+tt_uuid_clear(struct tt_uuid *uu)
+{
+	uint64_t *p = (uint64_t *) uu;
+	p[0] = p[1] = 0;
+}
+
+/**
  * \brief Test that \a lhs equal \a rhs
  * \param lhs UUID
  * \param rhs UUID

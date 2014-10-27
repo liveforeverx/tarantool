@@ -36,8 +36,12 @@ struct recovery_state;
  * @return A connected socket, ready too receive
  * data.
  */
-void
+bool
 replica_bootstrap(struct recovery_state *r);
+
+void
+replica_bootstrap_host(struct recovery_state *r, int remote_id,
+			struct xrow_header *request);
 
 void
 recovery_follow_remote(struct recovery_state *r);
@@ -46,7 +50,10 @@ void
 recovery_stop_remote(struct recovery_state *r);
 
 void
-recovery_set_remote(struct recovery_state *r, const char *source);
+recovery_reset_remote(struct recovery_state *r);
+
+void
+recovery_add_remote(struct recovery_state *r, const char *source);
 
 bool
 recovery_has_remote(struct recovery_state *r);

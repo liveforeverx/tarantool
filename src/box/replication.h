@@ -54,7 +54,8 @@ replication_join(int fd, struct xrow_header *packet);
  * @return None. On error, closes the socket.
  */
 void
-replication_subscribe(int fd, struct xrow_header *packet);
+replication_subscribe(struct recovery_state *r, int fd,
+		struct xrow_header *packet, struct tt_uuid local);
 
 void
 relay_send(Relay *relay, struct xrow_header *packet);

@@ -29,6 +29,7 @@
  * SUCH DAMAGE.
  */
 #include "trivia/util.h"
+#include "tt_uuid.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -85,13 +86,20 @@ int box_snapshot(void);
 const char *box_status(void);
 
 void
-box_process_auth(struct request *request);
+box_authenticate(const char *user_name, uint32_t len,
+		 const char *tuple, const char *tuple_end);
 
 void
+box_on_cluster_join(const tt_uuid *server_uuid);
+
+bool
 box_process_join(int fd, struct xrow_header *header);
 
 void
 box_process_subscribe(int fd, struct xrow_header *header);
+
+void
+box_generate_initial_snapshot(void *data __attribute__((unused)));
 
 /**
  * Check Lua configuration before initialization or

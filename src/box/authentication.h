@@ -31,5 +31,5 @@
 
 void
 authenticate(const char *user_name, uint32_t len,
-	     const char *tuple, const char *tuple_end);
+	     const char *scramble, uint32_t scramble_len);
 #endif /* INCLUDES_TARANTOOL_BOX_AUTHENTICATION_H */

@@ -6518,7 +6518,7 @@ case 265:
 char *
 uri_format(const struct uri *uri)
 {
-	static char buf[1024];
+	static __thread char buf[1024];
 	/* very primitive implementation suitable for our needs */
 	snprintf(buf, sizeof(buf), "%.*s:%.*s",
 		 (int) uri->host_len, uri->host != NULL ? uri->host : "*",

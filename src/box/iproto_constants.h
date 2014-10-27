@@ -68,6 +68,8 @@ enum iproto_key {
 	IPROTO_CLUSTER_UUID = 0x25,
 	IPROTO_VCLOCK = 0x26,
 	IPROTO_EXPR = 0x27, /* EVAL */
+	IPROTO_BSYNC_COMMIT = 0x28,
+	IPROTO_BSYNC_ROLLBACK = 0x29,
 	/* Leave a gap between request keys and response keys */
 	IPROTO_DATA = 0x30,
 	IPROTO_ERROR = 0x31,
@@ -128,7 +130,8 @@ enum iproto_type {
 	IPROTO_PING = 64,
 	IPROTO_JOIN = 65,
 	IPROTO_SUBSCRIBE = 66,
-	IPROTO_TYPE_ADMIN_MAX = IPROTO_SUBSCRIBE + 1,
+	IPROTO_WAL_FLAG = 67,
+	IPROTO_TYPE_ADMIN_MAX = IPROTO_WAL_FLAG + 1,
 	/* command failed = (IPROTO_TYPE_ERROR | ER_XXX from errcode.h) */
 	IPROTO_TYPE_ERROR = 1 << 15
 };

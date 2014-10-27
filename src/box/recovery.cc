@@ -49,6 +49,7 @@
 #include "vclock.h"
 #include "session.h"
 #include "coio.h"
+#include "bsync.h"
 
 /*
  * Recovery subsystem
@@ -116,8 +117,8 @@ const char *wal_mode_STRS[] = { "none", "write", "fsync", NULL };
 
 /* {{{ LSN API */
 
-static void
-fill_lsn(struct recovery_state *r, struct xrow_header *row)
+void
+wal_fill_lsn(struct recovery_state *r, struct xrow_header *row)
 {
 	if (row == NULL || row->server_id == 0) {
 		/* Local request */
@@ -168,7 +169,7 @@ recovery_new(const char *snap_dirname, const char *wal_dirname,
 	auto guard = make_scoped_guard([=]{
 		free(r);
 	});
-
+	r->join = false;
 	recovery_update_mode(r, WAL_NONE);
 
 	r->apply_row = apply_row;
@@ -261,10 +262,15 @@ void
 recovery_apply_row(struct recovery_state *r, struct xrow_header *row)
 {
 	/* Check lsn */
-	int64_t current_lsn = vclock_get(&r->vclock, row->server_id);
-	assert(current_lsn >= 0);
-	if (row->lsn > current_lsn)
+	if (row->bodycnt > 0) {
+		int64_t current_lsn = vclock_get(&r->vclock, row->server_id);
+		assert(current_lsn >= 0);
+		if (row->lsn > current_lsn)
+			r->apply_row(r, r->apply_row_param, row);
+	} else {
+		assert(row->commit_sn > 0 || row->rollback_sn > 0);
 		r->apply_row(r, r->apply_row_param, row);
+	}
 }
 
 #define LOG_EOF 0
@@ -335,6 +341,50 @@ recovery_bootstrap(struct recovery_state *r)
 	/** The snapshot must have a EOF marker. */
 	recover_xlog(r, snap);
 }
+
+/**
+ * Read a snapshot and call apply_row for every snapshot row.
+ * Panic in case of error.
+ *
+ * @pre there is an existing snapshot. Otherwise
+ * recovery_bootstrap() should be used instead.
+ */
+void
+recover_snap(struct recovery_state *r)
+{
+	/* There's no current_wal during initial recover. */
+	assert(r->current_wal == NULL);
+	say_info("recovery start");
+	/**
+	 * Don't rescan the directory, it's done when
+	 * recovery is initialized.
+	 */
+	struct vclock *res = vclockset_last(&r->snap_dir.index);
+	/*
+	 * The only case when the directory index is empty is
+	 * when someone has deleted a snapshot and tries to join
+	 * as a replica. Our best effort is to not crash in such case.
+	 */
+	if (res == NULL)
+		tnt_raise(ClientError, ER_MISSING_SNAPSHOT);
+	int64_t signature = vclock_signature(res);
+
+	struct xlog *snap = xlog_open(&r->snap_dir, signature, NONE);
+	auto guard = make_scoped_guard([=]{
+		xlog_close(snap);
+	});
+	/* Save server UUID */
+	r->server_uuid = snap->server_uuid;
+
+	/* Add a surrogate server id for snapshot rows */
+	vclock_add_server(&r->vclock, 0);
+
+	say_info("recovering from `%s'", snap->filename);
+	recover_xlog(r, snap);
+	/* Replace server vclock using the data from snapshot */
+	vclock_copy(&r->vclock, &snap->vclock);
+}
+
 
 /** Find out if there are new .xlog files since the current
  * LSN, and read them all up.
@@ -486,10 +536,6 @@ recovery_finalize(struct recovery_state *r, enum wal_mode wal_mode,
 		recovery_close_log(r);
 	}
 
-	r->wal_mode = wal_mode;
-	if (r->wal_mode == WAL_FSYNC)
-		(void) strcat(r->wal_dir.open_wflags, "s");
-
 	wal_writer_start(r, rows_per_wal);
 }
 
@@ -508,6 +554,13 @@ recovery_follow_f(va_list ap)
 	while (! fiber_is_cancelled()) {
 		recover_remaining_wals(r);
 		/**
+		 * Try to switch to in-memory replication
+		 */
+		if (bsync_follow(r)) {
+			say_info("async replication stopped, start sync");
+			break;
+		}
+		/**
 		 * Allow an immediate wakeup/break loop
 		 * from recovery_stop_local().
 		 */
@@ -521,6 +574,7 @@ recovery_follow_f(va_list ap)
 		}
 		fiber_set_cancellable(false);
 	}
+	r->watcher = NULL;
 }
 
 void
@@ -557,26 +611,6 @@ struct wal_write_request {
 	int64_t res;
 	struct fiber *fiber;
 	struct xrow_header *row;
-};
-
-/* Context of the WAL writer thread. */
-STAILQ_HEAD(wal_fifo, wal_write_request);
-
-struct wal_writer
-{
-	struct wal_fifo input;
-	struct wal_fifo commit;
-	struct cord cord;
-	pthread_mutex_t mutex;
-	pthread_cond_t cond;
-	ev_async write_event;
-	int rows_per_wal;
-	struct fio_batch *batch;
-	bool is_shutdown;
-	bool is_rollback;
-	ev_loop *txn_loop;
-	struct vclock vclock;
-	bool is_started;
 };
 
 static struct wal_writer wal_writer;
@@ -738,8 +772,7 @@ wal_writer_start(struct recovery_state *r, int rows_per_wal)
 	/* I. Initialize the state. */
 	wal_writer_init(&wal_writer, &r->vclock, rows_per_wal);
 	r->writer = &wal_writer;
-
-	ev_async_start(wal_writer.txn_loop, &wal_writer.write_event);
+	bsync_start(r);
 
 	/* II. Start the thread. */
 
@@ -961,20 +994,25 @@ wal_writer_thread(void *worker_args)
  * WAL writer main entry point: queue a single request
  * to be written to disk and wait until this task is completed.
  */
+
 int64_t
-wal_write(struct recovery_state *r, struct xrow_header *row)
+wal_write_lsn(struct recovery_state *r, struct xrow_header *row)
 {
 	/*
 	 * Bump current LSN even if wal_mode = NONE, so that
 	 * snapshots still works with WAL turned off.
 	 */
-	fill_lsn(r, row);
+	wal_fill_lsn(r, row);
+	return wal_write(r, row);
+}
+
+int64_t
+wal_write(struct recovery_state *r, struct xrow_header *row)
+{
 	if (r->wal_mode == WAL_NONE)
 		return 0;
-
-	ERROR_INJECT_RETURN(ERRINJ_WAL_IO);
-
 	struct wal_writer *writer = r->writer;
+	ERROR_INJECT_RETURN(ERRINJ_WAL_IO);
 
 	struct wal_write_request *req = (struct wal_write_request *)
 		region_alloc(&fiber()->gc, sizeof(struct wal_write_request));

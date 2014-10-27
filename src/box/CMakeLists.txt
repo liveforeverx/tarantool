@@ -53,6 +53,7 @@ add_library(box
     recovery.cc
     replica.cc
     replication.cc
+    bsync.cc
     ${lua_sources}
     lua/call.cc
     lua/tuple.cc
