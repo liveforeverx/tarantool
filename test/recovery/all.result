@@ -1,0 +1,60 @@
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+...
+insert_tests(box.space.sophia_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+...
+box.snapshot()
+---
+- ok
+...
+Crashing tarantool
+Start tarantool again
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+...
+True
+check(box.space.sophia_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+...
+True
