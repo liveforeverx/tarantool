@@ -2,59 +2,129 @@ insert_tests(box.space.memtx_space)
 ---
 - - [1, 'test_data 1', 2]
   - [2, 'test_data 2', 4]
-  - [3, 'test_data 3', 6]
-  - [4, 'test_data 4', 8]
-  - [5, 'test_data 5', 10]
-  - [6, 'test_data 6', 12]
-  - [7, 'test_data 7', 14]
-  - [8, 'test_data 8', 16]
-  - [9, 'test_data 9', 18]
-  - [10, 'test_data 10', 20]
 ...
 insert_tests(box.space.sophia_space)
 ---
-- - [1, 'test_data 1', 2]
-  - [2, 'test_data 2', 4]
-  - [3, 'test_data 3', 6]
+- - [3, 'test_data 3', 6]
   - [4, 'test_data 4', 8]
-  - [5, 'test_data 5', 10]
-  - [6, 'test_data 6', 12]
-  - [7, 'test_data 7', 14]
-  - [8, 'test_data 8', 16]
-  - [9, 'test_data 9', 18]
-  - [10, 'test_data 10', 20]
 ...
 box.snapshot()
 ---
 - ok
 ...
+Join replica
+box.snapshot()
+---
+- ok
+...
+---------------[Starting crash test loop]----------------
 Crashing tarantool
 Start tarantool again
+box.info().server.id
+---
+- 1
+...
 check(box.space.memtx_space)
 ---
 - - [1, 'test_data 1', 2]
   - [2, 'test_data 2', 4]
-  - [3, 'test_data 3', 6]
-  - [4, 'test_data 4', 8]
-  - [5, 'test_data 5', 10]
-  - [6, 'test_data 6', 12]
-  - [7, 'test_data 7', 14]
-  - [8, 'test_data 8', 16]
-  - [9, 'test_data 9', 18]
-  - [10, 'test_data 10', 20]
 ...
 True
 check(box.space.sophia_space)
 ---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+...
+True
+box.info().server.id
+---
+- 2
+...
+check(box.space.memtx_space)
+---
 - - [1, 'test_data 1', 2]
   - [2, 'test_data 2', 4]
-  - [3, 'test_data 3', 6]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
   - [4, 'test_data 4', 8]
+...
+True
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
   - [5, 'test_data 5', 10]
   - [6, 'test_data 6', 12]
+...
+insert_tests(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
   - [7, 'test_data 7', 14]
   - [8, 'test_data 8', 16]
+...
+---------------[End of crash iteration 1]----------------
+Crashing tarantool
+Start tarantool again
+box.info().server.id
+---
+- 1
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+...
+True
+box.info().server.id
+---
+- 2
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+...
+True
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
   - [9, 'test_data 9', 18]
   - [10, 'test_data 10', 20]
 ...
-True
+insert_tests(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+...
+---------------[End of crash iteration 2]----------------
