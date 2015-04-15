@@ -145,9 +145,12 @@ struct errcode_record {
 	/* 91 */_(ER_PRIV_NOT_GRANTED,		2, "User '%s' does not have %s access on %s '%s'") \
 	/* 92 */_(ER_ROLE_NOT_GRANTED,		2, "User '%s' does not have role '%s'") \
 	/* 93 */_(ER_MISSING_SNAPSHOT,		2, "Can't find snapshot") \
-	/* 94 */_(ER_BSYNC_REJECT,		2, "Operation was rejected by certification") \
-	/* 95 */_(ER_BSYNC_ROLLBACK,		2, "Operation was rejected by quorum") \
-	/* 96 */_(ER_SERVER_ID_IS_LOCAL,	2, "Try to join to itself")
+	/* 94 */_(ER_CANT_UPDATE_PRIMARY_KEY,	2, "Attempt to modify a tuple field which is part of index '%s' in space '%s'") \
+	/* 95 */_(ER_UPDATE_INTEGER_OVERFLOW,	2, "Integer overflow when performing '%c' operation on field %u") \
+	/* 96 */_(ER_GUEST_USER_PASSWORD,	2, "Setting password for guest user has no effect") \
+	/* 97 */_(ER_BSYNC_REJECT,		2, "Operation was rejected by certification") \
+	/* 98 */_(ER_BSYNC_ROLLBACK,		2, "Operation was rejected by quorum") \
+	/* 99 */_(ER_SERVER_ID_IS_LOCAL,	2, "Try to join to itself")
 
 /*
  * !IMPORTANT! Please follow instructions at start of the file

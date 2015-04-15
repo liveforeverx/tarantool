@@ -342,50 +342,6 @@ recovery_bootstrap(struct recovery_state *r)
 	recover_xlog(r, snap);
 }
 
-/**
- * Read a snapshot and call apply_row for every snapshot row.
- * Panic in case of error.
- *
- * @pre there is an existing snapshot. Otherwise
- * recovery_bootstrap() should be used instead.
- */
-void
-recover_snap(struct recovery_state *r)
-{
-	/* There's no current_wal during initial recover. */
-	assert(r->current_wal == NULL);
-	say_info("recovery start");
-	/**
-	 * Don't rescan the directory, it's done when
-	 * recovery is initialized.
-	 */
-	struct vclock *res = vclockset_last(&r->snap_dir.index);
-	/*
-	 * The only case when the directory index is empty is
-	 * when someone has deleted a snapshot and tries to join
-	 * as a replica. Our best effort is to not crash in such case.
-	 */
-	if (res == NULL)
-		tnt_raise(ClientError, ER_MISSING_SNAPSHOT);
-	int64_t signature = vclock_signature(res);
-
-	struct xlog *snap = xlog_open(&r->snap_dir, signature, NONE);
-	auto guard = make_scoped_guard([=]{
-		xlog_close(snap);
-	});
-	/* Save server UUID */
-	r->server_uuid = snap->server_uuid;
-
-	/* Add a surrogate server id for snapshot rows */
-	vclock_add_server(&r->vclock, 0);
-
-	say_info("recovering from `%s'", snap->filename);
-	recover_xlog(r, snap);
-	/* Replace server vclock using the data from snapshot */
-	vclock_copy(&r->vclock, &snap->vclock);
-}
-
-
 /** Find out if there are new .xlog files since the current
  * LSN, and read them all up.
  *
@@ -535,6 +491,9 @@ recovery_finalize(struct recovery_state *r, enum wal_mode wal_mode,
 
 		recovery_close_log(r);
 	}
+        r->wal_mode = wal_mode;
+        if (r->wal_mode == WAL_FSYNC)
+                (void) strcat(r->wal_dir.open_wflags, "s");
 
 	wal_writer_start(r, rows_per_wal);
 }

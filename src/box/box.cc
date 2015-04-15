@@ -55,6 +55,7 @@
 #include "authentication.h"
 
 static void process_ro(struct request *request, struct port *port);
+static void box_leave_local_standby_mode(void *data __attribute__((unused)));
 box_process_func box_process = process_ro;
 
 struct recovery_state *recovery;
@@ -270,7 +271,7 @@ box_set_readahead(int readahead)
 
 /* }}} configuration bindings */
 
-void
+static void
 box_leave_local_standby_mode(void *data __attribute__((unused)))
 {
 	if (!ready_to_leave_local_standby_mode) {
@@ -286,7 +287,9 @@ box_leave_local_standby_mode(void *data __attribute__((unused)))
 		return;
 	}
 	try {
-		recovery_finalize(recovery, cfg_geti("rows_per_wal"));
+	        int rows_per_wal = box_check_rows_per_wal(cfg_geti("rows_per_wal"));
+	        enum wal_mode wal_mode = box_check_wal_mode(cfg_gets("wal_mode"));
+	        recovery_finalize(recovery, wal_mode, rows_per_wal);
 	} catch (Exception *e) {
 		e->log();
 		panic("unable to successfully finalize recovery");
@@ -559,21 +562,19 @@ box_init(void)
 			/* Tell Sophia engine LSN it must recover to. */
 			int64_t checkpoint_id =
 				recovery_last_checkpoint(recovery);
-			engine_begin_recover_snapshot(checkpoint_id);
-			/* Process existing snapshot */
-			recover_snap(recovery);
-			engine_end_recover_snapshot();
+			engine_recover_to_checkpoint(checkpoint_id);
 		} else if (recovery_has_remote(recovery)) {
 			/* Initialize a new replica */
 			tt_uuid_create(&recovery->server_uuid);
+			engine_begin_join();
 			if (recovery->bsync_remote) {
 				iproto_init(&binary, &recovery->server_uuid);
 				box_set_listen(cfg_gets("listen"));
 				is_iproto_init = true;
 			}
 			if (replica_bootstrap(recovery)) {
-				engine_end_recover_snapshot();
-				box_snapshot();
+				int64_t checkpoint_id = vclock_signature(&recovery->vclock);
+				engine_checkpoint(checkpoint_id);
 				xdir_scan(&recovery->snap_dir);
 			}
 		} else {
@@ -581,9 +582,8 @@ box_init(void)
 			recovery_bootstrap(recovery);
 			box_set_cluster_uuid();
 			box_set_server_uuid(true);
-			engine_end_recover_snapshot();
-			box_snapshot();
-		}
+			int64_t checkpoint_id = vclock_signature(&recovery->vclock);
+			engine_checkpoint(checkpoint_id);		}
 		fiber_gc();
 	} catch (Exception *e) {
 		e->log();
@@ -615,6 +615,17 @@ box_init(void)
 		box_leave_local_standby_mode(NULL);
 	}
 	ready_to_leave_local_standby_mode = true;
+}
+
+void
+box_load_cfg()
+{
+	try {
+        	box_init();
+	} catch (Exception *e) {
+        	e->log();
+                panic("can't initialize storage: %s", e->errmsg());
+	}
 }
 
 static const char* box_initial_call = "make_scheme";
@@ -651,7 +662,6 @@ box_generate_initial_snapshot(void *data __attribute__((unused)))
 	box_set_cluster_uuid();
 	box_set_server_uuid(false);
 	box_call_initial();
-	engine_end_recover_snapshot();
 	fiber_yield();
 	box_snapshot();
 	xdir_scan(&recovery->snap_dir);

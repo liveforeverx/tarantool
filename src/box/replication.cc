@@ -121,7 +121,8 @@ replication_subscribe_f(va_list ap)
 	struct recovery_state *r = relay->r;
 
 	relay_set_cord_name(relay->io.fd);
-	recovery_follow_local(r, 0.1);
+	recovery_follow_local(r, fiber_name(fiber()),
+			      relay->wal_dir_rescan_delay);
 
 	/*
 	 * Init a read event: when replica closes its end
