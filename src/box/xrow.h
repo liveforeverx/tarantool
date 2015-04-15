@@ -85,9 +85,6 @@ xrow_header_encode(const struct xrow_header *header,
 int
 xrow_to_iovec(const struct xrow_header *row, struct iovec *out);
 
-uint32_t
-xrow_decode_error_code(struct xrow_header *row);
-
 /**
  * \brief Decode ERROR and re-throw it as ClientError exception
  * \param row
@@ -151,13 +148,6 @@ xrow_decode_join(struct xrow_header *row, struct tt_uuid *server_uuid)
 {
 	return xrow_decode_subscribe(row, NULL, server_uuid, NULL);
 }
-
-static inline void
-xrow_decode_indentify(struct xrow_header *row, struct tt_uuid *server_uuid)
-{
-	return xrow_decode_subscribe(row, NULL, server_uuid, NULL);
-}
-
 
 /**
  * \brief Encode end of stream command (a response to JOIN command)

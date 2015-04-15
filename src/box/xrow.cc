@@ -282,16 +282,10 @@ xrow_encode_auth(struct xrow_header *packet, const void *salt,
 	packet->type = IPROTO_AUTH;
 }
 
-uint32_t
-xrow_decode_error_code(struct xrow_header *row)
-{
-	return row->type & (IPROTO_TYPE_ERROR - 1);
-}
-
 void
 xrow_decode_error(struct xrow_header *row)
 {
-	uint32_t code = xrow_decode_error_code(row);
+	uint32_t code = (row->type & (IPROTO_TYPE_ERROR - 1));
 
 	char error[TNT_ERRMSG_MAX] = { 0 };
 	const char *pos;
