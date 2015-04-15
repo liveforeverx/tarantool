@@ -84,16 +84,16 @@ replication_join_f(va_list ap)
 {
 	Relay *relay = va_arg(ap, Relay *);
 	struct recovery_state *r = relay->r;
-	struct xrow_header row;
-	struct iovec iov[XROW_IOVMAX];
 	relay_set_cord_name(relay->io.fd);
 
 	/* Send snapshot */
 	engine_join(relay);
 
 	/* Send response to JOIN command = end of stream */
-	xrow_encode_vclock(&row, &r->vclock);
+	struct xrow_header row;
+	xrow_encode_vclock(&row, vclockset_last(&r->snap_dir.index));
 	row.sync = relay->sync;
+	struct iovec iov[XROW_IOVMAX];
 	int iovcnt = xrow_to_iovec(&row, iov);
 	coio_writev(&relay->io, iov, iovcnt, 0);
 	say_info("snapshot sent");
@@ -123,7 +123,6 @@ replication_subscribe_f(va_list ap)
 	relay_set_cord_name(relay->io.fd);
 	recovery_follow_local(r, fiber_name(fiber()),
 			      relay->wal_dir_rescan_delay);
-
 	/*
 	 * Init a read event: when replica closes its end
 	 * of the socket, we can read EOF and shutdown the

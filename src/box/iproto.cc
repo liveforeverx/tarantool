@@ -501,12 +501,8 @@ iproto_enqueue_batch(struct iproto_connection *con, struct ibuf *in)
 
 		/* Request is parsed */
 		con->parse_size -= reqend - reqstart;
-		if (con->parse_size == 0 ||
-			ireq->header.type == IPROTO_SUBSCRIBE ||
-			ireq->header.type == IPROTO_JOIN)
-		{
+		if (con->parse_size == 0)
 			break;
-		}
 	}
 }
 

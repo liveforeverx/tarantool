@@ -117,8 +117,8 @@ const char *wal_mode_STRS[] = { "none", "write", "fsync", NULL };
 
 /* {{{ LSN API */
 
-void
-wal_fill_lsn(struct recovery_state *r, struct xrow_header *row)
+static void
+fill_lsn(struct recovery_state *r, struct xrow_header *row)
 {
 	if (row == NULL || row->server_id == 0) {
 		/* Local request */
@@ -491,9 +491,9 @@ recovery_finalize(struct recovery_state *r, enum wal_mode wal_mode,
 
 		recovery_close_log(r);
 	}
-        r->wal_mode = wal_mode;
-        if (r->wal_mode == WAL_FSYNC)
-                (void) strcat(r->wal_dir.open_wflags, "s");
+	r->wal_mode = wal_mode;
+	if (r->wal_mode == WAL_FSYNC)
+		(void) strcat(r->wal_dir.open_wflags, "s");
 
 	wal_writer_start(r, rows_per_wal);
 }
@@ -961,7 +961,7 @@ wal_write_lsn(struct recovery_state *r, struct xrow_header *row)
 	 * Bump current LSN even if wal_mode = NONE, so that
 	 * snapshots still works with WAL turned off.
 	 */
-	wal_fill_lsn(r, row);
+	fill_lsn(r, row);
 	return wal_write(r, row);
 }
 

@@ -106,9 +106,9 @@ remote_connect(struct recovery_state *r, struct iobuf *iobuf, int remote_id)
 	char salt[SCRAMBLE_SIZE];
 	xrow_decode_greeting(greeting, salt, &remote->server_uuid);
 	/* Perform authentication if user provided at least login */
-	say_crit("connected to %s (%s), fd=%d",
-		sio_strfaddr(&remote->addr, remote->addr_len),
-		tt_uuid_str(&remote->server_uuid), coio->fd);
+	say_info("connected to %s (%s), fd=%d",
+		 sio_strfaddr(&remote->addr, remote->addr_len),
+		 tt_uuid_str(&remote->server_uuid), coio->fd);
 
 	if (!remote->uri.login)
 		return;
@@ -149,6 +149,7 @@ restart:
 	}
 	for (;;) {
 		try {
+			r->remote[rid].status = "connecting";
 			remote_connect(r, iobuf, rid);
 			if (tt_uuid_is_equal(&r->remote[rid].server_uuid,
 					&r->server_uuid))
@@ -163,6 +164,7 @@ restart:
 			/* Send INIT request */
 			remote_write_row(&r->remote[rid].out, &request);
 			r->remote[rid].connected = true;
+			r->remote[rid].status = "connected";
 			bsync_push_connection(rid);
 			break;
 		} catch (FiberCancelException *e) {
@@ -172,9 +174,10 @@ restart:
 				say_error("can't connect to replica");
 				e->log();
 				say_info("will retry every %i second",
-					RECONNECT_DELAY);
+					 RECONNECT_DELAY);
 				r->remote[rid].warning_said = true;
 			}
+			iobuf_reset(iobuf);
 			evio_close(loop(), &r->remote[rid].out);
 			fiber_sleep(RECONNECT_DELAY);
 		}
@@ -266,13 +269,6 @@ replica_bootstrap(struct recovery_state *r)
 }
 
 static void
-remote_set_status(struct remote *remote, const char *status)
-{
-	if (remote)
-		remote->status = status;
-}
-
-static void
 pull_from_remote(va_list ap)
 {
 	char name[FIBER_NAME_MAX];
@@ -339,7 +335,6 @@ pull_from_remote(va_list ap)
 		const char *err = NULL;
 		try {
 			if (! remote || ! evio_is_active(&remote->out)) {
-				remote_set_status(remote, "connecting");
 				err = "can't connect to cluster";
 				if (remote->connecter)
 					fiber_call(remote->connecter);
@@ -352,7 +347,6 @@ pull_from_remote(va_list ap)
 				} else {
 					fiber_yield();
 				}
-				remote_set_status(remote, "connected");
 				const char *uri = uri_format(&remote->uri);
 				say_crit("starting replication from %s", uri);
 				snprintf(name, sizeof(name), "replica/%s", uri);
@@ -382,13 +376,13 @@ pull_from_remote(va_list ap)
 			iobuf_reset(iobuf);
 			fiber_gc();
 		} catch (ClientError *e) {
-			remote_set_status(remote, "stopped");
+			remote->status = "stopped";
 			throw;
 		} catch (FiberCancelException *e) {
-			remote_set_status(remote, "off");
+			remote->status = "off";
 			throw;
 		} catch (Exception *e) {
-			remote_set_status(remote, "disconnected");
+			remote->status = "disconnected";
 			if (remote && ! remote->warning_said) {
 				if (err != NULL)
 					say_info("%s", err);

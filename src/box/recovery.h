@@ -60,6 +60,8 @@ typedef void (apply_row_f)(struct recovery_state *, void *,
  */
 
 struct wal_write_request;
+struct wal_watcher;
+
 /* Context of the WAL writer thread. */
 STAILQ_HEAD(wal_fifo, wal_write_request);
 
@@ -79,8 +81,6 @@ struct wal_writer
 	struct vclock vclock;
 	bool is_started;
 };
-
-struct wal_watcher;
 
 enum wal_mode { WAL_NONE = 0, WAL_WRITE, WAL_FSYNC, WAL_MODE_MAX };
 
@@ -180,7 +180,6 @@ void recovery_stop_local(struct recovery_state *r);
 void recovery_finalize(struct recovery_state *r, enum wal_mode mode,
 		       int rows_per_wal);
 
-void wal_fill_lsn(struct recovery_state *r, struct xrow_header *row);
 int64_t wal_write_lsn(struct recovery_state *r, struct xrow_header *row);
 int64_t wal_write(struct recovery_state *r, struct xrow_header *row);
 

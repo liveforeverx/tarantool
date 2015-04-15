@@ -50,12 +50,11 @@
 #include "user.h"
 #include "cfg.h"
 #include "iobuf.h"
-#include "evio.h"
+#include "coio.h"
 #include "bsync.h"
 #include "authentication.h"
 
 static void process_ro(struct request *request, struct port *port);
-static void box_leave_local_standby_mode(void *data __attribute__((unused)));
 box_process_func box_process = process_ro;
 
 struct recovery_state *recovery;
@@ -63,7 +62,6 @@ struct recovery_state *recovery;
 static struct evio_service binary; /* iproto binary listener */
 
 int snapshot_pid = 0; /* snapshot processes pid */
-bool ready_to_leave_local_standby_mode = false;
 char *current_uri = NULL;
 
 static void
@@ -206,9 +204,7 @@ box_set_listen(const char *uri)
 		evio_service_stop(&binary);
 
 	if (uri != NULL) {
-		evio_service_start(&binary, uri);
-	} else {
-		box_leave_local_standby_mode(NULL);
+		coio_service_start(&binary, uri);
 	}
 	if (current_uri)
 		free(current_uri);
@@ -270,47 +266,6 @@ box_set_readahead(int readahead)
 }
 
 /* }}} configuration bindings */
-
-static void
-box_leave_local_standby_mode(void *data __attribute__((unused)))
-{
-	if (!ready_to_leave_local_standby_mode) {
-		ready_to_leave_local_standby_mode = true;
-		return;
-	}
-	if (recovery->finalize) {
-		/*
-		 * Nothing to do: this happens when the server
-		 * binds to both ports, and one of the callbacks
-		 * is called first.
-		 */
-		return;
-	}
-	try {
-	        int rows_per_wal = box_check_rows_per_wal(cfg_geti("rows_per_wal"));
-	        enum wal_mode wal_mode = box_check_wal_mode(cfg_gets("wal_mode"));
-	        recovery_finalize(recovery, wal_mode, rows_per_wal);
-	} catch (Exception *e) {
-		e->log();
-		panic("unable to successfully finalize recovery");
-	}
-
-	/*
-	 * notify engines about end of recovery.
-	*/
-	engine_end_recovery();
-
-	stat_cleanup(stat_base, IPROTO_TYPE_STAT_MAX);
-	box_set_wal_mode(cfg_gets("wal_mode"));
-
-	bsync_leave_local_standby_mode();
-
-	if (recovery_has_remote(recovery))
-		recovery_follow_remote(recovery);
-
-	title("running", NULL);
-	say_info("ready to accept requests");
-}
 
 /**
  * Execute a request against a given space id with
@@ -415,7 +370,7 @@ box_on_cluster_join(const tt_uuid *server_uuid)
 	uint32_t server_id = tuple ? tuple_field_u32(tuple, 0) + 1 : 1;
 	if (server_id >= VCLOCK_MAX)
 		tnt_raise(ClientError, ER_REPLICA_MAX, server_id);
-	say_info("join new server to cluster: %s", tt_uuid_str(server_uuid));
+
 	boxk(IPROTO_INSERT, SC_CLUSTER_ID, "%u%s",
 	     (unsigned) server_id, tt_uuid_str(server_uuid));
 }
@@ -524,70 +479,69 @@ box_init(void)
 		   cfg_geti("slab_alloc_maximal"),
 		   cfg_getd("slab_alloc_factor"));
 	bool is_iproto_init = false;
-	try {
-		engine_init();
 
-		schema_init();
-		user_cache_init();
-		/*
-		 * The order is important: to initialize sessions,
-		 * we need to access the admin user, which is used
-		 * as a default session user when running triggers.
-		 */
-		session_init();
+	stat_init();
+	stat_base = stat_register(iproto_type_strs, IPROTO_TYPE_STAT_MAX);
 
-		title("loading", NULL);
+	engine_init();
 
-		/* recovery initialization */
-		recovery = recovery_new(cfg_gets("snap_dir"),
-					cfg_gets("wal_dir"),
-					recover_row, NULL);
+	schema_init();
+	user_cache_init();
+	/*
+	 * The order is important: to initialize sessions,
+	 * we need to access the admin user, which is used
+	 * as a default session user when running triggers.
+	 */
+	session_init();
+
+	title("loading", NULL);
+
+	/* recovery initialization */
+	recovery = recovery_new(cfg_gets("snap_dir"),
+				cfg_gets("wal_dir"),
+				recover_row, NULL);
+	recovery_add_remote(recovery,
+			    cfg_gets("replication_source"));
+	recovery_setup_panic(recovery,
+			     cfg_geti("panic_on_snap_error"),
+			     cfg_geti("panic_on_wal_error"));
+	recovery->bsync_remote = cfg_geti("replication.bsync");
+	int source_len = cfg_getarr_size("replication.source");
+	for (int i = 0; i < source_len; ++i) {
 		recovery_add_remote(recovery,
-				    cfg_gets("replication_source"));
-		recovery_setup_panic(recovery,
-				     cfg_geti("panic_on_snap_error"),
-				     cfg_geti("panic_on_wal_error"));
-		recovery->bsync_remote = cfg_geti("replication.bsync");
-		int source_len = cfg_getarr_size("replication.source");
-		for (int i = 0; i < source_len; ++i) {
-			recovery_add_remote(recovery,
-				cfg_getarr_elem("replication.source", i));
+			cfg_getarr_elem("replication.source", i));
+	}
+	bsync_init(recovery);
+	if (recovery->remote_size > 1 && !recovery->bsync_remote) {
+		tnt_raise(ClientError, ER_CFG,
+			"cant execute many JOIN commands");
+	}
+	if (recovery_has_data(recovery)) {
+		/* Tell Sophia engine LSN it must recover to. */
+		int64_t checkpoint_id =
+			recovery_last_checkpoint(recovery);
+		engine_recover_to_checkpoint(checkpoint_id);
+	} else if (recovery_has_remote(recovery)) {
+		/* Initialize a new replica */
+		tt_uuid_create(&recovery->server_uuid);
+		engine_begin_join();
+		if (recovery->bsync_remote) {
+			iproto_init(&binary, &recovery->server_uuid);
+			box_set_listen(cfg_gets("listen"));
+			is_iproto_init = true;
 		}
-		bsync_init(recovery);
-		if (recovery->remote_size > 1 && !recovery->bsync_remote) {
-			tnt_raise(ClientError, ER_CFG,
-				"cant execute many JOIN commands");
-		}
-		if (recovery_has_data(recovery)) {
-			/* Tell Sophia engine LSN it must recover to. */
-			int64_t checkpoint_id =
-				recovery_last_checkpoint(recovery);
-			engine_recover_to_checkpoint(checkpoint_id);
-		} else if (recovery_has_remote(recovery)) {
-			/* Initialize a new replica */
-			tt_uuid_create(&recovery->server_uuid);
-			engine_begin_join();
-			if (recovery->bsync_remote) {
-				iproto_init(&binary, &recovery->server_uuid);
-				box_set_listen(cfg_gets("listen"));
-				is_iproto_init = true;
-			}
-			if (replica_bootstrap(recovery)) {
-				int64_t checkpoint_id = vclock_signature(&recovery->vclock);
-				engine_checkpoint(checkpoint_id);
-				xdir_scan(&recovery->snap_dir);
-			}
-		} else {
-			/* Initialize the first server of a new cluster */
-			recovery_bootstrap(recovery);
-			box_set_cluster_uuid();
-			box_set_server_uuid(true);
+		if (replica_bootstrap(recovery)) {
 			int64_t checkpoint_id = vclock_signature(&recovery->vclock);
-			engine_checkpoint(checkpoint_id);		}
-		fiber_gc();
-	} catch (Exception *e) {
-		e->log();
-		panic("can't initialize storage: %s", e->errmsg());
+			engine_checkpoint(checkpoint_id);
+			xdir_scan(&recovery->snap_dir);
+		}
+	} else {
+		/* Initialize the first server of a new cluster */
+		recovery_bootstrap(recovery);
+		box_set_cluster_uuid();
+		box_set_server_uuid(true);
+		int64_t checkpoint_id = vclock_signature(&recovery->vclock);
+		engine_checkpoint(checkpoint_id);
 	}
 	fiber_gc();
 
@@ -598,32 +552,34 @@ box_init(void)
 
 	if (!is_iproto_init)
 		iproto_init(&binary, &recovery->server_uuid);
-	/**
-	 * listen is a dynamic option, so box_set_listen()
-	 * will be called after box_init() as long as there
-	 * is a value for listen in the configuration table.
-	 *
-	 * However, if cfg.listen is nil, box_set_listen() will
-	 * not be called - which means that we need to leave
-	 * local hot standby here. The idea is to leave
-	 * local hot standby immediately if listen is not given,
-	 * and only after binding to the listen uri otherwise.
-	 */
-	if (cfg_gets("listen") == NULL || ready_to_leave_local_standby_mode)
-	{
-		ready_to_leave_local_standby_mode = true;
-		box_leave_local_standby_mode(NULL);
-	}
-	ready_to_leave_local_standby_mode = true;
+	box_set_listen(cfg_gets("listen"));
+	int rows_per_wal = box_check_rows_per_wal(cfg_geti("rows_per_wal"));
+	enum wal_mode wal_mode = box_check_wal_mode(cfg_gets("wal_mode"));
+	recovery_finalize(recovery, wal_mode, rows_per_wal);
+	bsync_leave_local_standby_mode();
+
+	engine_end_recovery();
+
+	stat_cleanup(stat_base, IPROTO_TYPE_STAT_MAX);
+
+	if (recovery_has_remote(recovery))
+		recovery_follow_remote(recovery);
+	/* Enter read-write mode. */
+	if (recovery->server_id > 0)
+		box_set_ro(false);
+	title("running", NULL);
+	say_info("ready to accept requests");
+
+	fiber_gc();
 }
 
 void
 box_load_cfg()
 {
 	try {
-        	box_init();
+		box_init();
 	} catch (Exception *e) {
-        	e->log();
+		e->log();
                 panic("can't initialize storage: %s", e->errmsg());
 	}
 }
