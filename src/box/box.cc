@@ -389,12 +389,14 @@ box_process_join(int fd, struct xrow_header *header)
 		tnt_raise(ClientError, ER_SERVER_ID_IS_LOCAL);
 	}
 	/* Process JOIN request via replication relay */
-	if (!recovery->bsync_remote) {
-		box_on_cluster_join(&server_uuid);
-	}
-	if (bsync_process_join(fd, &server_uuid)) {
+	if (recovery->bsync_remote) {
+		if (bsync_process_join(fd, &server_uuid)) {
+			replication_join(fd, header);
+			return true;
+		}
+	} else {
 		replication_join(fd, header);
-		return recovery->bsync_remote;
+		box_on_cluster_join(&server_uuid);
 	}
 	return false;
 }
@@ -611,6 +613,7 @@ box_call_initial()
 void
 box_generate_initial_snapshot(void *data __attribute__((unused)))
 {
+	box_set_ro(false);
 	tt_uuid local_uuid = recovery->server_uuid;
 	tt_uuid_clear(&recovery->server_uuid);
 	recovery_bootstrap(recovery);
@@ -618,6 +621,7 @@ box_generate_initial_snapshot(void *data __attribute__((unused)))
 	box_set_cluster_uuid();
 	box_set_server_uuid(false);
 	box_call_initial();
+	box_set_ro(true);
 	fiber_yield();
 	box_snapshot();
 	xdir_scan(&recovery->snap_dir);
