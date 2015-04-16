@@ -36,7 +36,8 @@
 #include "tarantool.h"
 #include "fiber.h"
 #include "say.h"
-#include "evio.h"
+#include "cfg.h"
+#include "coio_buf.h"
 #include "scoped_guard.h"
 #include "memory.h"
 #include "msgpuck/msgpuck.h"
@@ -157,6 +158,178 @@ struct IprotoRequestGuard {
 
 /* }}} */
 
+/* {{{ iproto_proxy */
+
+#define MAX_REMOTE 16
+
+struct proxy_destination {
+	struct uri uri;
+	bool yield;
+	struct fiber *worker;
+	struct iproto_request **queue;
+	int queue_begin;
+	int queue_end;
+	int queue_size;
+};
+
+static struct {
+	int dest_size;
+	int dest_id;
+	struct proxy_destination dest[MAX_REMOTE];
+} proxy_state;
+
+static void
+iproto_proxy_read(struct ev_io *coio, struct iobuf *iobuf,
+		  struct xrow_header *row)
+{
+	struct ibuf *in = &iobuf->in;
+
+	/* Read fixed header */
+	if (ibuf_size(in) < 1)
+		coio_breadn(coio, in, 1);
+
+	/* Read length */
+	if (mp_typeof(*in->pos) != MP_UINT) {
+		tnt_raise(ClientError, ER_INVALID_MSGPACK,
+			  "packet length");
+	}
+	ssize_t to_read = mp_check_uint(in->pos, in->end);
+	if (to_read > 0)
+		coio_breadn(coio, in, to_read);
+
+	uint32_t len = mp_decode_uint((const char **) &in->pos);
+
+	/* Read header and body */
+	to_read = len - ibuf_size(in);
+	if (to_read > 0)
+		coio_breadn(coio, in, to_read);
+
+	xrow_header_decode(row, (const char **) &in->pos, in->pos + len);
+}
+
+static void
+iproto_proxy_write(struct ev_io *coio, const struct xrow_header *row)
+{
+	struct iovec iov[XROW_IOVMAX];
+	int iovcnt = xrow_to_iovec(row, iov);
+	coio_writev(coio, iov, iovcnt, 0);
+}
+
+static void
+iproto_proxy_worker(int id, struct ev_io *coio, struct iobuf *iobuf)
+{
+	struct proxy_destination *dest = &proxy_state.dest[id];
+	while (true) {
+		if (dest->queue_begin == dest->queue_end) {
+			dest->yield = true;
+			fiber_yield();
+			dest->yield = false;
+		}
+		struct xrow_header row;
+		while (dest->queue_begin != dest->queue_end) {
+			struct iproto_request *req =
+				dest->queue[dest->queue_begin++];
+			iproto_proxy_write(coio, &req->header);
+			iproto_proxy_read(coio, iobuf, &row);
+			fiber_gc();
+			if (dest->queue_begin == dest->queue_size)
+				dest->queue_begin = 0;
+			mempool_free(&iproto_request_pool, req);
+		}
+	}
+}
+
+static void
+iproto_proxy_connect(struct ev_io *coio, struct uri *uri, struct iobuf *iobuf)
+{
+	char greeting[IPROTO_GREETING_SIZE];
+	/*
+	 * coio_connect() stores resolved address to \a &remote->addr
+	 * on success. &remote->addr_len is a value-result argument which
+	 * must be initialized to the size of associated buffer (addrstorage)
+	 * before calling coio_connect(). Since coio_connect() performs
+	 * DNS resolution under the hood it is theoretically possible that
+	 * remote->addr_len will be different even for same uri.
+	 */
+	struct sockaddr addr;
+	struct sockaddr_storage addrstorage;
+	socklen_t addr_len = sizeof(addrstorage);
+	/* Prepare null-terminated strings for coio_connect() */
+	coio_connect(coio, uri, &addr, &addr_len);
+	assert(coio->fd >= 0);
+	coio_readn(coio, greeting, sizeof(greeting));
+
+	say_crit("connected to %s", sio_strfaddr(&addr, addr_len));
+
+	/* Perform authentication if user provided at least login */
+	if (!uri->login)
+		return;
+
+	/* Authenticate */
+	say_debug("authenticating...");
+	struct xrow_header row;
+	xrow_encode_auth(&row, greeting, uri->login,
+			 uri->login_len, uri->password,
+			 uri->password_len);
+	iproto_proxy_write(coio, &row);
+	iproto_proxy_read(coio, iobuf, &row);
+	if (row.type != IPROTO_OK)
+		xrow_decode_error(&row); /* auth failed */
+
+	/* auth successed */
+	say_info("authenticated");
+}
+
+static void
+iproto_proxy_fiber(va_list ap)
+{
+	int id = va_arg(ap, int);
+	struct ev_io coio;
+	struct iobuf *iobuf = iobuf_new(fiber_name(fiber()));
+	auto coio_guard = make_scoped_guard([&] {
+		iobuf_delete(iobuf);
+		evio_close(loop(), &coio);
+	});
+	coio_init(&coio);
+	bool warning_said = false;
+	proxy_state.dest[id].worker = fiber();
+	while (true) {
+		proxy_state.dest[id].yield = false;
+		try {
+			iproto_proxy_connect(&coio, &proxy_state.dest[id].uri, iobuf);
+			warning_said = false;
+			iproto_proxy_worker(id, &coio, iobuf);
+		} catch (FiberCancelException *e) {
+			throw;
+		} catch (Exception *e) {
+			if (!warning_said) {
+				say_info("will retry every 1 second");
+				e->log();
+				warning_said = true;
+			}
+			evio_close(loop(), &coio);
+		}
+		fiber_sleep(1.0);
+	}
+}
+
+static void
+iproto_proxy_push(uint8_t id, struct iproto_request *req)
+{
+	struct proxy_destination *dest = &proxy_state.dest[id];
+	proxy_state.dest[id].queue[dest->queue_end++] = req;
+	if (dest->queue_end == dest->queue_size)
+		dest->queue_end = 0;
+	if (dest->queue_end != dest->queue_begin)
+		return;
+	if (dest->queue[dest->queue_begin])
+		mempool_free(&iproto_request_pool, dest->queue[dest->queue_begin]);
+	if (++dest->queue_begin == dest->queue_size)
+		dest->queue_begin = 0;
+}
+
+/* }}} */
+
 /* {{{ iproto_connection */
 
 /** Context of a single client connection. */
@@ -202,6 +375,8 @@ struct iproto_connection
 	struct iproto_request *disconnect;
 	struct iproto_fifo txn_request_batch;
 	struct iproto_fifo iproto_request_batch;
+
+	uint8_t proxy_id;
 };
 
 static struct mempool iproto_connection_pool;
@@ -257,6 +432,9 @@ iproto_connection_new(const char *name, int fd, struct sockaddr *addr)
 					     iproto_request_shutdown);
 	STAILQ_INIT(&con->txn_request_batch);
 	STAILQ_INIT(&con->iproto_request_batch);
+	con->proxy_id = proxy_state.dest_id++;
+	if (proxy_state.dest_id == proxy_state.dest_size)
+		proxy_state.dest_id = 0;
 	return con;
 }
 
@@ -499,7 +677,13 @@ iproto_enqueue_batch(struct iproto_connection *con, struct ibuf *in)
 		}
 		/* Request will be discarded in iproto_process_XXX */
 		ireq = guard.release();
-		STAILQ_INSERT_TAIL(&con->iproto_request_batch, ireq, fifo);
+		if (proxy_state.dest_size) {
+			iproto_proxy_push(con->proxy_id, ireq);
+			if (proxy_state.dest[con->proxy_id].yield)
+				fiber_call(proxy_state.dest[con->proxy_id].worker);
+		} else {
+			STAILQ_INSERT_TAIL(&con->iproto_request_batch, ireq, fifo);
+		}
 
 		/* Request is parsed */
 		con->parse_size -= reqend - reqstart;
@@ -695,8 +879,9 @@ restart:
 	STAILQ_INSERT_TAIL(&ireq->connection->txn_request_batch, ireq, fifo);
 	if (ireq->finished && ireq->is_last) {
 		iproto_queue_flush(ireq->connection);
+	} else {
+		ireq->finished = true;
 	}
-	ireq->finished = true;
 	/** Put the current fiber into a queue fiber cache. */
 	rlist_add_entry(&iproto_state.fiber_cache, fiber(), state);
 	fiber_yield();
@@ -721,8 +906,10 @@ iproto_queue_schedule(ev_loop * /* loop */, struct ev_async * /* watcher */,
 			fiber_start(fiber_new("iproto", iproto_queue_handler));
 		}
 		if (ireq->finished) {
-			if (ireq->is_last)
-				iproto_queue_flush(ireq->connection);
+			if (ireq->is_last) {
+				struct iproto_connection *con = ireq->connection;
+				iproto_queue_flush(con);
+			}
 			continue;
 		}
 		ireq->finished = true;
@@ -808,6 +995,7 @@ static struct iproto_request *
 iproto_request_new(struct iproto_connection *con,
 		   iproto_request_f process, uint8_t type)
 {
+	assert(con);
 	struct iproto_request *ireq =
 		(struct iproto_request *) mempool_alloc(&iproto_request_pool);
 	ireq->connection = con;
@@ -983,6 +1171,22 @@ iproto_init()
 	ev_async_start(iproto_state.txn_loop, &iproto_state.txn_event);
 	ev_async_start(iproto_state.txn_loop, &iproto_state.bind_event);
 
+	proxy_state.dest_id = 0;
+	proxy_state.dest_size = cfg_getarr_size("proxy");
+	for (int i = 0; i < proxy_state.dest_size; ++i) {
+		int rc = uri_parse(&proxy_state.dest[i].uri,
+				   cfg_getarr_elem("proxy", i));
+		assert(rc == 0 && proxy_state.dest[i].uri.service != NULL);
+		proxy_state.dest[i].queue_begin = proxy_state.dest[i].queue_end = 0;
+		proxy_state.dest[i].queue_size = cfg_geti("proxy_queue");
+		size_t queue_bytes = proxy_state.dest[i].queue_size *
+					sizeof(struct iproto_request *);
+		proxy_state.dest[i].queue = (struct iproto_request **)
+			calloc(proxy_state.dest[i].queue_size,
+				sizeof(struct iproto_request *));
+		memset(proxy_state.dest[i].queue, 0, queue_bytes);
+	}
+
 	pthread_mutexattr_t errorcheck;
 	(void) tt_pthread_mutexattr_init(&errorcheck);
 #ifndef NDEBUG
@@ -1015,6 +1219,9 @@ iproto_thread(void * /* worker_args */)
 		       sizeof(struct iproto_connection));
 	ev_async_start(iproto_state.iproto_loop, &iproto_state.iproto_event);
 	ev_async_start(iproto_state.iproto_loop, &iproto_state.listen_event);
+	for (int i = 0; i < proxy_state.dest_size; ++i) {
+		fiber_start(fiber_new("proxy", iproto_proxy_fiber), i);
+	}
 	tt_pthread_cond_signal(&iproto_state.cond);
 	tt_pthread_mutex_unlock(&iproto_state.mutex);
 	try {

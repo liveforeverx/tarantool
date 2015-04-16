@@ -54,7 +54,8 @@ local default_cfg = {
     background          = false,
     username            = nil ,
     coredump            = false,
-
+    proxy               = {},
+    proxy_queue         = 0,
     -- snapshot_daemon
     snapshot_period     = 0,        -- 0 = disabled
     snapshot_count      = 6,
@@ -101,6 +102,8 @@ local template_cfg = {
     coredump            = 'boolean',
     snapshot_period     = 'number',
     snapshot_count      = 'number',
+    proxy               = 'table',
+    proxy_queue         = 'number',
 }
 
 local function normalize_uri(port)
