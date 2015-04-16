@@ -693,10 +693,10 @@ restart:
 
 	ireq->response_pos = obuf_create_svp(&ireq->iobuf->out);
 	STAILQ_INSERT_TAIL(&ireq->connection->txn_request_batch, ireq, fifo);
-	if (ireq->finished && ireq->is_last) {
+	if (ireq->finished && ireq->is_last)
 		iproto_queue_flush(ireq->connection);
-	}
-	ireq->finished = true;
+	else
+		ireq->finished = true;
 	/** Put the current fiber into a queue fiber cache. */
 	rlist_add_entry(&iproto_state.fiber_cache, fiber(), state);
 	fiber_yield();
