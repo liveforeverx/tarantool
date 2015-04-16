@@ -231,6 +231,8 @@ iproto_proxy_worker(int id, struct ev_io *coio, struct iobuf *iobuf)
 				dest->queue[dest->queue_begin++];
 			iproto_proxy_write(coio, &req->header);
 			iproto_proxy_read(coio, iobuf, &row);
+			req->iobuf->in.pos += req->total_len;
+			iobuf_reset(iobuf);
 			fiber_gc();
 			if (dest->queue_begin == dest->queue_size)
 				dest->queue_begin = 0;
