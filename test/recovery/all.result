@@ -128,3 +128,923 @@ insert_tests(box.space.sophia_space)
   - [12, 'test_data 12', 24]
 ...
 ---------------[End of crash iteration 2]----------------
+Crashing tarantool
+Start tarantool again
+box.info().server.id
+---
+- 1
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+...
+True
+box.info().server.id
+---
+- 2
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+...
+True
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+...
+insert_tests(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+...
+---------------[End of crash iteration 3]----------------
+Crashing tarantool
+Start tarantool again
+box.info().server.id
+---
+- 1
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+...
+True
+box.info().server.id
+---
+- 2
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+...
+True
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+...
+insert_tests(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+...
+---------------[End of crash iteration 4]----------------
+Crashing tarantool
+Start tarantool again
+box.info().server.id
+---
+- 1
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+...
+True
+box.info().server.id
+---
+- 2
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+...
+True
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+...
+insert_tests(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+...
+---------------[End of crash iteration 5]----------------
+Crashing tarantool
+Start tarantool again
+box.info().server.id
+---
+- 1
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+...
+True
+box.info().server.id
+---
+- 2
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+...
+True
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+...
+insert_tests(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+...
+---------------[End of crash iteration 6]----------------
+Crashing tarantool
+Start tarantool again
+box.info().server.id
+---
+- 1
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+...
+True
+box.info().server.id
+---
+- 2
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+...
+True
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+  - [29, 'test_data 29', 58]
+  - [30, 'test_data 30', 60]
+...
+insert_tests(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+  - [31, 'test_data 31', 62]
+  - [32, 'test_data 32', 64]
+...
+---------------[End of crash iteration 7]----------------
+Crashing tarantool
+Start tarantool again
+box.info().server.id
+---
+- 1
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+  - [29, 'test_data 29', 58]
+  - [30, 'test_data 30', 60]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+  - [31, 'test_data 31', 62]
+  - [32, 'test_data 32', 64]
+...
+True
+box.info().server.id
+---
+- 2
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+  - [29, 'test_data 29', 58]
+  - [30, 'test_data 30', 60]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+  - [31, 'test_data 31', 62]
+  - [32, 'test_data 32', 64]
+...
+True
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+  - [29, 'test_data 29', 58]
+  - [30, 'test_data 30', 60]
+  - [33, 'test_data 33', 66]
+  - [34, 'test_data 34', 68]
+...
+insert_tests(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+  - [31, 'test_data 31', 62]
+  - [32, 'test_data 32', 64]
+  - [35, 'test_data 35', 70]
+  - [36, 'test_data 36', 72]
+...
+---------------[End of crash iteration 8]----------------
+Crashing tarantool
+Start tarantool again
+box.info().server.id
+---
+- 1
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+  - [29, 'test_data 29', 58]
+  - [30, 'test_data 30', 60]
+  - [33, 'test_data 33', 66]
+  - [34, 'test_data 34', 68]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+  - [31, 'test_data 31', 62]
+  - [32, 'test_data 32', 64]
+  - [35, 'test_data 35', 70]
+  - [36, 'test_data 36', 72]
+...
+True
+box.info().server.id
+---
+- 2
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+  - [29, 'test_data 29', 58]
+  - [30, 'test_data 30', 60]
+  - [33, 'test_data 33', 66]
+  - [34, 'test_data 34', 68]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+  - [31, 'test_data 31', 62]
+  - [32, 'test_data 32', 64]
+  - [35, 'test_data 35', 70]
+  - [36, 'test_data 36', 72]
+...
+True
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+  - [29, 'test_data 29', 58]
+  - [30, 'test_data 30', 60]
+  - [33, 'test_data 33', 66]
+  - [34, 'test_data 34', 68]
+  - [37, 'test_data 37', 74]
+  - [38, 'test_data 38', 76]
+...
+insert_tests(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+  - [31, 'test_data 31', 62]
+  - [32, 'test_data 32', 64]
+  - [35, 'test_data 35', 70]
+  - [36, 'test_data 36', 72]
+  - [39, 'test_data 39', 78]
+  - [40, 'test_data 40', 80]
+...
+---------------[End of crash iteration 9]----------------
+Crashing tarantool
+Start tarantool again
+box.info().server.id
+---
+- 1
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+  - [29, 'test_data 29', 58]
+  - [30, 'test_data 30', 60]
+  - [33, 'test_data 33', 66]
+  - [34, 'test_data 34', 68]
+  - [37, 'test_data 37', 74]
+  - [38, 'test_data 38', 76]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+  - [31, 'test_data 31', 62]
+  - [32, 'test_data 32', 64]
+  - [35, 'test_data 35', 70]
+  - [36, 'test_data 36', 72]
+  - [39, 'test_data 39', 78]
+  - [40, 'test_data 40', 80]
+...
+True
+box.info().server.id
+---
+- 2
+...
+check(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+  - [29, 'test_data 29', 58]
+  - [30, 'test_data 30', 60]
+  - [33, 'test_data 33', 66]
+  - [34, 'test_data 34', 68]
+  - [37, 'test_data 37', 74]
+  - [38, 'test_data 38', 76]
+...
+True
+check(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+  - [31, 'test_data 31', 62]
+  - [32, 'test_data 32', 64]
+  - [35, 'test_data 35', 70]
+  - [36, 'test_data 36', 72]
+  - [39, 'test_data 39', 78]
+  - [40, 'test_data 40', 80]
+...
+True
+insert_tests(box.space.memtx_space)
+---
+- - [1, 'test_data 1', 2]
+  - [2, 'test_data 2', 4]
+  - [5, 'test_data 5', 10]
+  - [6, 'test_data 6', 12]
+  - [9, 'test_data 9', 18]
+  - [10, 'test_data 10', 20]
+  - [13, 'test_data 13', 26]
+  - [14, 'test_data 14', 28]
+  - [17, 'test_data 17', 34]
+  - [18, 'test_data 18', 36]
+  - [21, 'test_data 21', 42]
+  - [22, 'test_data 22', 44]
+  - [25, 'test_data 25', 50]
+  - [26, 'test_data 26', 52]
+  - [29, 'test_data 29', 58]
+  - [30, 'test_data 30', 60]
+  - [33, 'test_data 33', 66]
+  - [34, 'test_data 34', 68]
+  - [37, 'test_data 37', 74]
+  - [38, 'test_data 38', 76]
+  - [41, 'test_data 41', 82]
+  - [42, 'test_data 42', 84]
+...
+insert_tests(box.space.sophia_space)
+---
+- - [3, 'test_data 3', 6]
+  - [4, 'test_data 4', 8]
+  - [7, 'test_data 7', 14]
+  - [8, 'test_data 8', 16]
+  - [11, 'test_data 11', 22]
+  - [12, 'test_data 12', 24]
+  - [15, 'test_data 15', 30]
+  - [16, 'test_data 16', 32]
+  - [19, 'test_data 19', 38]
+  - [20, 'test_data 20', 40]
+  - [23, 'test_data 23', 46]
+  - [24, 'test_data 24', 48]
+  - [27, 'test_data 27', 54]
+  - [28, 'test_data 28', 56]
+  - [31, 'test_data 31', 62]
+  - [32, 'test_data 32', 64]
+  - [35, 'test_data 35', 70]
+  - [36, 'test_data 36', 72]
+  - [39, 'test_data 39', 78]
+  - [40, 'test_data 40', 80]
+  - [43, 'test_data 43', 86]
+  - [44, 'test_data 44', 88]
+...
+---------------[End of crash iteration 10]----------------
