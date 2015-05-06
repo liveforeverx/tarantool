@@ -253,6 +253,7 @@ t;
   - 'box.error.CROSS_ENGINE_TRANSACTION : 81'
   - 'box.error.MODIFY_INDEX : 14'
   - 'box.error.TUPLE_FOUND : 3'
+  - 'box.error.SCHEMA_IS_LOCKED : 98'
   - 'box.error.PASSWORD_MISMATCH : 47'
   - 'box.error.TRANSACTION_CONFLICT : 97'
   - 'box.error.NO_SUCH_ENGINE : 57'

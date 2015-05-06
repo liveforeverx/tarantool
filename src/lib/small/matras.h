@@ -271,14 +271,14 @@ matras_id_t
 matras_extent_count(const struct matras *m);
 
 /*
- * Create new version of matras memory.
+ * Create a consistent read view.
  * Return 0 if all version IDs are occupied.
  */
 matras_id_t
 matras_create_read_view(struct matras *m);
 
 /*
- * Delete memory version by specified ID.
+ * Delete a read view.
  */
 void
 matras_destroy_read_view(struct matras *m, matras_id_t ver_id);

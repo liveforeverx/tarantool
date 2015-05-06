@@ -351,4 +351,27 @@ MemtxHash::initIterator(struct iterator *ptr, enum iterator_type type,
 			  "Hash index", "requested iterator type");
 	}
 }
+
+/**
+ * Create a read view for iterator so further index modifications
+ * will not affect the iterator iteration.
+ */
+void
+MemtxHash::createReadViewForIterator(struct iterator *iterator)
+{
+	struct hash_iterator *it = (struct hash_iterator *) iterator;
+	light_index_itr_freeze(it->hash_table, &it->hitr);
+}
+
+/**
+ * Destroy a read view of an iterator. Must be called for iterators,
+ * for which createReadViewForIterator was called.
+ */
+void
+MemtxHash::destroyReadViewForIterator(struct iterator *iterator)
+{
+	struct hash_iterator *it = (struct hash_iterator *) iterator;
+	light_index_itr_destroy(it->hash_table, &it->hitr);
+}
+
 /* }}} */

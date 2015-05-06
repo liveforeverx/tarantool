@@ -29,12 +29,21 @@
  * SUCH DAMAGE.
  */
 #include "engine.h"
+#include "fiber.h"
 
 enum memtx_recovery_state {
 	MEMTX_INITIALIZED,
 	MEMTX_READING_SNAPSHOT,
 	MEMTX_READING_WAL,
 	MEMTX_OK,
+};
+
+struct snap_space_data {
+	int count;
+	int alloc_count;
+	struct iterator **iterators;
+	struct space **spaces;
+	struct xlog *snap;
 };
 
 struct MemtxEngine: public Engine {
@@ -64,7 +73,9 @@ private:
 	 * LSN of the snapshot which is in progress.
 	 */
 	int64_t m_checkpoint_id;
-	pid_t m_snapshot_pid;
+	struct cord m_snapshot_cord;
+	bool m_waiting_for_snap_thread;
+	struct snap_space_data m_snap_space_data;
 	enum memtx_recovery_state m_state;
 };
 

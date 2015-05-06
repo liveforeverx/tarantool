@@ -38,4 +38,10 @@ extern struct trigger on_replace_func;
 extern struct trigger on_replace_priv;
 extern struct trigger on_replace_cluster;
 
+/**
+ * If the value is nonzero, modification of spaces and indexes
+ * will raise an exception
+ */
+extern int schema_is_locked;
+
 #endif /* INCLUDES_TARANTOOL_BOX_ALTER_H */

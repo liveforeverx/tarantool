@@ -124,9 +124,9 @@ lbox_info_uptime(struct lua_State *L)
 }
 
 static int
-lbox_info_snapshot_pid(struct lua_State *L)
+lbox_info_snapshot_in_progress(struct lua_State *L)
 {
-	lua_pushnumber(L, snapshot_pid);
+	lua_pushnumber(L, (int)snapshot_in_progress);
 	return 1;
 }
 
@@ -169,7 +169,7 @@ lbox_info_dynamic_meta [] =
 	{"replication", lbox_info_replication},
 	{"status", lbox_info_status},
 	{"uptime", lbox_info_uptime},
-	{"snapshot_pid", lbox_info_snapshot_pid},
+	{"snapshot_in_progress", lbox_info_snapshot_in_progress},
 	{"pid", lbox_info_pid},
 #if 0
 	{"sophia", lbox_info_sophia},

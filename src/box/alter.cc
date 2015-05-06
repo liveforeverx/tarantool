@@ -42,6 +42,12 @@
 #include "cluster.h" /* for cluster_set_uuid() */
 #include "session.h" /* to fetch the current user. */
 
+/**
+ * If the value is nonzero, modification of spaces and indexes
+ * will raise an exception
+ */
+int schema_is_locked = 0;
+
 /** _space columns */
 #define ID               0
 #define UID              1
@@ -66,6 +72,8 @@
 
 /** _func columns */
 #define FUNC_SETUID      3
+
+
 
 /* {{{ Auxiliary functions and methods. */
 
@@ -922,6 +930,9 @@ on_drop_space(struct trigger * /* trigger */, void *event)
 static void
 on_replace_dd_space(struct trigger * /* trigger */, void *event)
 {
+	if (schema_is_locked)
+		tnt_raise(ClientError, ER_SCHEMA_IS_LOCKED);
+
 	struct txn *txn = (struct txn *) event;
 	txn_check_autocommit(txn, "Space _space");
 	struct txn_stmt *stmt = txn_stmt(txn);
@@ -1040,6 +1051,9 @@ on_replace_dd_space(struct trigger * /* trigger */, void *event)
 static void
 on_replace_dd_index(struct trigger * /* trigger */, void *event)
 {
+	if (schema_is_locked)
+		tnt_raise(ClientError, ER_SCHEMA_IS_LOCKED);
+
 	struct txn *txn = (struct txn *) event;
 	txn_check_autocommit(txn, "Space _index");
 	struct txn_stmt *stmt = txn_stmt(txn);
