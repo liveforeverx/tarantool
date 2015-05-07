@@ -1,0 +1,33 @@
+lua s = box.space[2]
+---
+...
+lua s:insert(0, 0) s:insert(2, 0)
+---
+...
+lua for i=1,100000 do s:insert(1, i) end
+---
+...
+lua test_itrs = {EQ=box.index.EQ, REQ=box.index.REQ, GT=box.index.GT, LT=box.index.LT, GE=box.index.GE, LE=box.index.LE}
+---
+...
+lua function test_run_itr(itr, key) for i=1,10000 do s.index[0]:iterator(itr, key)() end end
+---
+...
+lua function test_itr(itr, itr_name, key) t = os.time() test_run_itr(itr, key) if os.time() - t > 1 then print('Too long ', itr_name, ' ', key) end end
+---
+...
+lua for itr_name,itr in pairs(test_itrs) do for key = 0,2 do test_itr(itr, itr_name, key) end end
+---
+Too long GT 1
+Too long LT 1
+...
+lua s:truncate()
+---
+...
+lua test_itr = nil test_run_itr = nil test_itrs = nil s = nil
+---
+...
+lua print('done')
+---
+done
+...

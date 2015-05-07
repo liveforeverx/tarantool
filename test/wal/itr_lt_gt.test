@@ -1,0 +1,14 @@
+# encoding: tarantool
+import sys
+
+exec admin "lua s = box.space[2]"
+exec admin "lua s:insert(0, 0) s:insert(2, 0)"
+exec admin "lua for i=1,100000 do s:insert(1, i) end"
+exec admin "lua test_itrs = {EQ=box.index.EQ, REQ=box.index.REQ, GT=box.index.GT, LT=box.index.LT, GE=box.index.GE, LE=box.index.LE}"
+exec admin "lua function test_run_itr(itr, key) for i=1,10000 do s.index[0]:iterator(itr, key)() end end"
+exec admin "lua function test_itr(itr, itr_name, key) t = os.time() test_run_itr(itr, key) if os.time() - t > 1 then print('Too long ', itr_name, ' ', key) end end"
+exec admin "lua for itr_name,itr in pairs(test_itrs) do for key = 0,2 do test_itr(itr, itr_name, key) end end"
+exec admin "lua s:truncate()"
+exec admin "lua test_itr = nil test_run_itr = nil test_itrs = nil s = nil"
+exec admin "lua print('done')"
+
