@@ -32,6 +32,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+#include "lib/salad/rlist.h"
 #include "trivia/util.h"
 #include "third_party/tarantool_ev.h"
 #include "xlog.h"
@@ -105,6 +106,8 @@ struct recovery_state {
 	enum wal_mode wal_mode;
 	struct tt_uuid server_uuid;
 	uint32_t server_id;
+
+	struct rlist replica; /* replication clients */
 
 	bool finalize;
 };

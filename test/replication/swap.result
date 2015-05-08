@@ -10,6 +10,26 @@ while box.info.server.id == 0 do require('fiber').sleep(0.01) end
 while box.space['_priv']:len() < 1 do require('fiber').sleep(0.01) end
 ---
 ...
+box.info.replication.replica
+---
+- - peer:
+      host: <host>
+      family: <family>
+      port: <port>
+    idle: <idle>
+    vclock: {2: 0, 1: 4}
+    status: connected
+...
+box.info.replication.source
+---
+- - peer:
+      host: <host>
+      family: <family>
+      port: <port>
+    idle: <idle>
+    status: connected
+    lag: <lag>
+...
 s = box.schema.space.create('tweedledum', {id = 0})
 ---
 ...
@@ -56,6 +76,14 @@ select * from t0 where k0 = 3
 select * from t0 where k0 = 4
 ---
 - [4, 'tuple 4']
+...
+box.info.vclock
+---
+- {2: 0, 1: 11}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 0, 1: 11}
 ...
 insert into t0 values (5, 'tuple 5')
 ---
@@ -230,6 +258,14 @@ select * from t0 where k0 = 24
 ---
 - [24, 'tuple 24']
 ...
+box.info.vclock
+---
+- {2: 10, 1: 21}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 10, 1: 21}
+...
 insert into t0 values (25, 'tuple 25')
 ---
 - [25, 'tuple 25']
@@ -402,6 +438,14 @@ select * from t0 where k0 = 43
 select * from t0 where k0 = 44
 ---
 - [44, 'tuple 44']
+...
+box.info.vclock
+---
+- {2: 20, 1: 31}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 20, 1: 31}
 ...
 insert into t0 values (45, 'tuple 45')
 ---
@@ -576,6 +620,14 @@ select * from t0 where k0 = 64
 ---
 - [64, 'tuple 64']
 ...
+box.info.vclock
+---
+- {2: 30, 1: 41}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 30, 1: 41}
+...
 insert into t0 values (65, 'tuple 65')
 ---
 - [65, 'tuple 65']
@@ -748,6 +800,14 @@ select * from t0 where k0 = 83
 select * from t0 where k0 = 84
 ---
 - [84, 'tuple 84']
+...
+box.info.vclock
+---
+- {2: 40, 1: 51}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 40, 1: 51}
 ...
 insert into t0 values (85, 'tuple 85')
 ---
@@ -922,6 +982,14 @@ select * from t0 where k0 = 104
 ---
 - [104, 'tuple 104']
 ...
+box.info.vclock
+---
+- {2: 50, 1: 61}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 50, 1: 61}
+...
 insert into t0 values (105, 'tuple 105')
 ---
 - [105, 'tuple 105']
@@ -1094,6 +1162,14 @@ select * from t0 where k0 = 123
 select * from t0 where k0 = 124
 ---
 - [124, 'tuple 124']
+...
+box.info.vclock
+---
+- {2: 60, 1: 71}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 60, 1: 71}
 ...
 insert into t0 values (125, 'tuple 125')
 ---
@@ -1268,6 +1344,14 @@ select * from t0 where k0 = 144
 ---
 - [144, 'tuple 144']
 ...
+box.info.vclock
+---
+- {2: 70, 1: 81}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 70, 1: 81}
+...
 insert into t0 values (145, 'tuple 145')
 ---
 - [145, 'tuple 145']
@@ -1440,6 +1524,14 @@ select * from t0 where k0 = 163
 select * from t0 where k0 = 164
 ---
 - [164, 'tuple 164']
+...
+box.info.vclock
+---
+- {2: 80, 1: 91}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 80, 1: 91}
 ...
 insert into t0 values (165, 'tuple 165')
 ---
@@ -1614,6 +1706,14 @@ select * from t0 where k0 = 184
 ---
 - [184, 'tuple 184']
 ...
+box.info.vclock
+---
+- {2: 90, 1: 101}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 90, 1: 101}
+...
 insert into t0 values (185, 'tuple 185')
 ---
 - [185, 'tuple 185']
@@ -1786,6 +1886,14 @@ select * from t0 where k0 = 203
 select * from t0 where k0 = 204
 ---
 - [204, 'tuple 204']
+...
+box.info.vclock
+---
+- {2: 100, 1: 111}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 100, 1: 111}
 ...
 insert into t0 values (205, 'tuple 205')
 ---
@@ -1960,6 +2068,14 @@ select * from t0 where k0 = 224
 ---
 - [224, 'tuple 224']
 ...
+box.info.vclock
+---
+- {2: 110, 1: 121}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 110, 1: 121}
+...
 insert into t0 values (225, 'tuple 225')
 ---
 - [225, 'tuple 225']
@@ -2132,6 +2248,14 @@ select * from t0 where k0 = 243
 select * from t0 where k0 = 244
 ---
 - [244, 'tuple 244']
+...
+box.info.vclock
+---
+- {2: 120, 1: 131}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 120, 1: 131}
 ...
 insert into t0 values (245, 'tuple 245')
 ---
@@ -2306,6 +2430,14 @@ select * from t0 where k0 = 264
 ---
 - [264, 'tuple 264']
 ...
+box.info.vclock
+---
+- {2: 130, 1: 141}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 130, 1: 141}
+...
 insert into t0 values (265, 'tuple 265')
 ---
 - [265, 'tuple 265']
@@ -2478,6 +2610,14 @@ select * from t0 where k0 = 283
 select * from t0 where k0 = 284
 ---
 - [284, 'tuple 284']
+...
+box.info.vclock
+---
+- {2: 140, 1: 151}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 140, 1: 151}
 ...
 insert into t0 values (285, 'tuple 285')
 ---
@@ -2652,6 +2792,14 @@ select * from t0 where k0 = 304
 ---
 - [304, 'tuple 304']
 ...
+box.info.vclock
+---
+- {2: 150, 1: 161}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 150, 1: 161}
+...
 insert into t0 values (305, 'tuple 305')
 ---
 - [305, 'tuple 305']
@@ -2824,6 +2972,14 @@ select * from t0 where k0 = 323
 select * from t0 where k0 = 324
 ---
 - [324, 'tuple 324']
+...
+box.info.vclock
+---
+- {2: 160, 1: 171}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 160, 1: 171}
 ...
 insert into t0 values (325, 'tuple 325')
 ---
@@ -2998,6 +3154,14 @@ select * from t0 where k0 = 344
 ---
 - [344, 'tuple 344']
 ...
+box.info.vclock
+---
+- {2: 170, 1: 181}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 170, 1: 181}
+...
 insert into t0 values (345, 'tuple 345')
 ---
 - [345, 'tuple 345']
@@ -3171,6 +3335,14 @@ select * from t0 where k0 = 364
 ---
 - [364, 'tuple 364']
 ...
+box.info.vclock
+---
+- {2: 180, 1: 191}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 180, 1: 191}
+...
 insert into t0 values (365, 'tuple 365')
 ---
 - [365, 'tuple 365']
@@ -3343,6 +3515,14 @@ select * from t0 where k0 = 383
 select * from t0 where k0 = 384
 ---
 - [384, 'tuple 384']
+...
+box.info.vclock
+---
+- {2: 190, 1: 201}
+...
+box.info.replication.replica[1].vclock
+---
+- {2: 190, 1: 201}
 ...
 insert into t0 values (385, 'tuple 385')
 ---

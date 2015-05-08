@@ -334,7 +334,7 @@ box_process_join(int fd, struct xrow_header *header)
 	xrow_decode_join(header, &server_uuid);
 
 	/* Process JOIN request via replication relay */
-	replication_join(fd, header);
+	replication_join(recovery, fd, header);
 	/** Register the server with the cluster. */
 	box_on_cluster_join(&server_uuid);
 }
@@ -346,7 +346,7 @@ box_process_subscribe(int fd, struct xrow_header *header)
 	access_check_universe(PRIV_R);
 
 	/* process SUBSCRIBE request via replication relay */
-	replication_subscribe(fd, header);
+	replication_subscribe(recovery, fd, header);
 }
 
 /** Replace the current server id in _cluster */

@@ -30,6 +30,8 @@
 
 #include <assert.h>
 
+#include <netdb.h> /* NI_XXX constants */
+
 int luaL_nil_ref = LUA_REFNIL;
 int luaL_map_metatable_ref = LUA_REFNIL;
 int luaL_array_metatable_ref = LUA_REFNIL;
@@ -673,6 +675,128 @@ luaL_pushint64(struct lua_State *L, int64_t val)
 		*(int64_t *) luaL_pushcdata(L, CTID_INT64,
 					    sizeof(int64_t)) = val;
 	}
+	return 1;
+}
+
+static int
+luaL_pushsockfamily(struct lua_State *L, int family)
+{
+	switch (family) {
+#ifdef	AF_UNIX
+	case AF_UNIX:
+		lua_pushliteral(L, "AF_UNIX");
+		break;
+#endif
+#ifdef	AF_INET
+	case AF_INET:
+		lua_pushliteral(L, "AF_INET");
+		break;
+#endif
+#ifdef	AF_INET6
+	case AF_INET6:
+		lua_pushliteral(L, "AF_INET6");
+		break;
+#endif
+#ifdef	AF_IPX
+	case AF_IPX:
+		lua_pushliteral(L, "AF_IPX");
+		break;
+#endif
+#ifdef	AF_NETLINK
+	case AF_NETLINK:
+		lua_pushliteral(L, "AF_NETLINK");
+		break;
+#endif
+#ifdef AF_X25
+	case AF_X25:
+		lua_pushliteral(L, "AF_X25");
+		break;
+#endif
+#ifdef	AF_AX25
+	case AF_AX25:
+		lua_pushliteral(L, "AF_AX25");
+		break;
+#endif
+#ifdef	AF_ATMPVC
+	case AF_ATMPVC:
+		lua_pushliteral(L, "AF_ATMPVC");
+		break;
+#endif
+#ifdef	AF_APPLETALK
+	case AF_APPLETALK:
+		lua_pushliteral(L, "AF_APPLETALK");
+		break;
+#endif
+#ifdef	AF_PACKET
+	case AF_PACKET:
+		lua_pushliteral(L, "AF_PACKET");
+		break;
+#endif
+	default:
+		lua_pushinteger(L, family);
+		break;
+	}
+	return 1;
+}
+
+int
+luaL_pushsockaddr(struct lua_State *L, const struct sockaddr *addr,
+		  socklen_t alen)
+{
+	lua_newtable(L);
+
+	lua_pushliteral(L, "family");
+	luaL_pushsockfamily(L, addr->sa_family);
+	lua_rawset(L, -3);
+
+	switch (addr->sa_family) {
+	case PF_INET:
+	case PF_INET6: {
+		char shost[NI_MAXHOST];
+		char sservice[NI_MAXSERV];
+		int rc = getnameinfo(addr,
+				     alen,
+				     shost, sizeof(shost),
+				     sservice, sizeof(sservice),
+				     NI_NUMERICHOST|NI_NUMERICSERV
+				    );
+
+		if (rc == 0) {
+			lua_pushliteral(L, "host");
+			lua_pushstring(L, shost);
+			lua_rawset(L, -3);
+
+			lua_pushliteral(L, "port");
+			lua_pushinteger(L, atol(sservice));
+			lua_rawset(L, -3);
+		}
+
+		break;
+	}
+
+	case PF_UNIX:
+		lua_pushliteral(L, "host");
+		lua_pushliteral(L, "unix/");
+		lua_rawset(L, -3);
+
+		if (alen > sizeof(addr->sa_family)) {
+			lua_pushliteral(L, "port");
+			lua_pushstring(L,
+				       ((struct sockaddr_un *)addr)->sun_path);
+			lua_rawset(L, -3);
+		} else {
+			lua_pushliteral(L, "port");
+			lua_pushliteral(L, "");
+			lua_rawset(L, -3);
+		}
+		break;
+
+	default:	/* unknown family */
+		lua_pop(L, 1);
+		lua_pushnil(L);
+		break;
+	}
+
 	return 1;
 }
 

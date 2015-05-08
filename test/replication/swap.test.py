@@ -3,6 +3,7 @@ import tarantool
 from lib.tarantool_server import TarantoolServer
 import re
 import yaml
+import sys
 
 REPEAT = 20
 ID_BEGIN = 0
@@ -18,8 +19,16 @@ def select_tuples(_server, begin, end):
     for i in range(begin, end):
         _server.sql("select * from t0 where k0 = %d" % i)
 
+sys.stdout.push_filter('host: .*', 'host: <host>')
+sys.stdout.push_filter('family: .*', 'family: <family>')
+sys.stdout.push_filter('port: .*', 'port: <port>')
+sys.stdout.push_filter('idle: [0-9\.]+', 'idle: <idle>')
+sys.stdout.push_filter('lag: [0-9\.]+', 'lag: <lag>')
+
 # master server
 master = server
+master.stop()
+master.deploy()
 master.admin("box.schema.user.create('%s', { password = '%s'})" % (LOGIN, PASSWORD))
 master.admin("box.schema.user.grant('%s', 'read,write,execute', 'universe')" % LOGIN)
 master.sql.py_con.authenticate(LOGIN, PASSWORD)
@@ -35,6 +44,9 @@ replica.admin("while box.info.server.id == 0 do require('fiber').sleep(0.01) end
 replica.uri = '%s:%s@%s' % (LOGIN, PASSWORD, replica.sql.uri)
 replica.admin("while box.space['_priv']:len() < 1 do require('fiber').sleep(0.01) end")
 replica.sql.py_con.authenticate(LOGIN, PASSWORD)
+
+master.admin("box.info.replication.replica")
+replica.admin("box.info.replication.source")
 
 master.admin("s = box.schema.space.create('tweedledum', {id = 0})")
 master.admin("index = s:create_index('primary', {type = 'hash'})")
@@ -58,6 +70,8 @@ for i in range(REPEAT):
     # select from replica
     replica.wait_lsn(master_id, master.get_lsn(master_id))
     select_tuples(replica, id, id + ID_STEP)
+    master.admin("box.info.vclock")
+    master.admin("box.info.replication.replica[1].vclock")
     id += ID_STEP
 
     # insert to master
@@ -107,3 +121,5 @@ replica.stop()
 replica.cleanup(True)
 server.stop()
 server.deploy()
+
+sys.stdout.pop_filter()

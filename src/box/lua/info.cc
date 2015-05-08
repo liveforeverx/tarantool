@@ -50,9 +50,44 @@ lbox_info_replication(struct lua_State *L)
 
 	lua_newtable(L);
 
-	lua_pushstring(L, "status");
+	lua_newtable(L);
+	struct recovery_state *replica_r;
+	size_t i = 1;
+	rlist_foreach_entry(replica_r, &r->replica, replica) {
+		lua_newtable(L);
+
+		luaL_pushsockaddr(L, &replica_r->remote.addr,
+				  replica_r->remote.addr_len);
+		lua_setfield(L, -2, "peer");
+
+		lua_createtable(L, 0, vclock_size(&recovery->vclock));
+		/* Request compact output flow */
+		vclock_foreach(&recovery->vclock, it) {
+			lua_pushinteger(L, it.id);
+			luaL_pushuint64(L, it.lsn);
+			lua_settable(L, -3);
+		}
+		luaL_setmaphint(L, -1);
+		lua_setfield(L, -2, "vclock");
+
+		lua_pushliteral(L, "connected");
+		lua_setfield(L, -2, "status");
+
+		lua_pushstring(L, "idle");
+		lua_pushnumber(L, ev_now(loop()) - replica_r->remote.last_row_time);
+		lua_settable(L, -3);
+
+		lua_rawseti(L, -2, i);
+	}
+	lua_setfield(L, -2, "replica");
+
+	lua_newtable(L);
+	lua_newtable(L);
+	luaL_pushsockaddr(L, &r->remote.addr, r->remote.addr_len);
+	lua_setfield(L, -2, "peer");
+
 	lua_pushstring(L, r->remote.status);
-	lua_settable(L, -3);
+	lua_setfield(L, -2, "status");
 
 	if (r->remote.reader) {
 		lua_pushstring(L, "lag");
@@ -70,6 +105,9 @@ lbox_info_replication(struct lua_State *L)
 			lua_settable(L, -3);
 		}
 	}
+
+	lua_rawseti(L, -2, 1); /* source #1 */
+	lua_setfield(L, -2, "source");
 
 	return 1;
 }
@@ -99,12 +137,12 @@ lbox_info_vclock(struct lua_State *L)
 {
 	lua_createtable(L, 0, vclock_size(&recovery->vclock));
 	/* Request compact output flow */
-	luaL_setmaphint(L, -1);
 	vclock_foreach(&recovery->vclock, it) {
 		lua_pushinteger(L, it.id);
 		luaL_pushuint64(L, it.lsn);
 		lua_settable(L, -3);
 	}
+	luaL_setmaphint(L, -1);
 
 	return 1;
 }

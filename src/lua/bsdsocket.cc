@@ -443,68 +443,6 @@ lbox_bsdsocket_iowait(struct lua_State *L)
 }
 
 static int
-lbox_bsdsocket_push_family(struct lua_State *L, int family)
-{
-	switch (family) {
-#ifdef	AF_UNIX
-	case AF_UNIX:
-		lua_pushliteral(L, "AF_UNIX");
-		break;
-#endif
-#ifdef	AF_INET
-	case AF_INET:
-		lua_pushliteral(L, "AF_INET");
-		break;
-#endif
-#ifdef	AF_INET6
-	case AF_INET6:
-		lua_pushliteral(L, "AF_INET6");
-		break;
-#endif
-#ifdef	AF_IPX
-	case AF_IPX:
-		lua_pushliteral(L, "AF_IPX");
-		break;
-#endif
-#ifdef	AF_NETLINK
-	case AF_NETLINK:
-		lua_pushliteral(L, "AF_NETLINK");
-		break;
-#endif
-#ifdef AF_X25
-	case AF_X25:
-		lua_pushliteral(L, "AF_X25");
-		break;
-#endif
-#ifdef	AF_AX25
-	case AF_AX25:
-		lua_pushliteral(L, "AF_AX25");
-		break;
-#endif
-#ifdef	AF_ATMPVC
-	case AF_ATMPVC:
-		lua_pushliteral(L, "AF_ATMPVC");
-		break;
-#endif
-#ifdef	AF_APPLETALK
-	case AF_APPLETALK:
-		lua_pushliteral(L, "AF_APPLETALK");
-		break;
-#endif
-#ifdef	AF_PACKET
-	case AF_PACKET:
-		lua_pushliteral(L, "AF_PACKET");
-		break;
-#endif
-
-	default:
-		lua_pushinteger(L, family);
-		break;
-	}
-	return 1;
-}
-
-static int
 lbox_bsdsocket_push_protocol(struct lua_State *L, int protonumber)
 {
 	struct protoent *p = getprotobynumber(protonumber);
@@ -558,67 +496,6 @@ lbox_bsdsocket_push_sotype(struct lua_State *L, int sotype)
 		lua_pushinteger(L, sotype);
 		break;
 	}
-	return 1;
-}
-
-static int
-lbox_bsdsocket_push_addr(struct lua_State *L,
-			 const struct sockaddr *addr, socklen_t alen)
-{
-	lua_newtable(L);
-
-	lua_pushliteral(L, "family");
-	lbox_bsdsocket_push_family(L, addr->sa_family);
-	lua_rawset(L, -3);
-
-	switch (addr->sa_family) {
-	case PF_INET:
-	case PF_INET6: {
-		char shost[NI_MAXHOST];
-		char sservice[NI_MAXSERV];
-		int rc = getnameinfo(addr,
-				     alen,
-				     shost, sizeof(shost),
-				     sservice, sizeof(sservice),
-				     NI_NUMERICHOST|NI_NUMERICSERV
-				    );
-
-		if (rc == 0) {
-			lua_pushliteral(L, "host");
-			lua_pushstring(L, shost);
-			lua_rawset(L, -3);
-
-			lua_pushliteral(L, "port");
-			lua_pushinteger(L, atol(sservice));
-			lua_rawset(L, -3);
-		}
-
-		break;
-	}
-
-	case PF_UNIX:
-		lua_pushliteral(L, "host");
-		lua_pushliteral(L, "unix/");
-		lua_rawset(L, -3);
-
-		if (alen > sizeof(addr->sa_family)) {
-			lua_pushliteral(L, "port");
-			lua_pushstring(L,
-				       ((struct sockaddr_un *)addr)->sun_path);
-			lua_rawset(L, -3);
-		} else {
-			lua_pushliteral(L, "port");
-			lua_pushliteral(L, "");
-			lua_rawset(L, -3);
-		}
-		break;
-
-	default:	/* unknown family */
-		lua_pop(L, 1);
-		lua_pushnil(L);
-		break;
-	}
-
 	return 1;
 }
 
@@ -681,7 +558,7 @@ lbox_bsdsocket_getaddrinfo(struct lua_State *L)
 	for (struct addrinfo *rp = result; rp; rp = rp->ai_next, i++) {
 		lua_pushinteger(L, i);
 
-		lbox_bsdsocket_push_addr(L, rp->ai_addr, rp->ai_addrlen);
+		luaL_pushsockaddr(L, rp->ai_addr, rp->ai_addrlen);
 
 		if (lua_isnil(L, -1)) {
 			lua_pop(L, 2);
@@ -750,7 +627,7 @@ lbox_bsdsocket_soname(struct lua_State *L)
 		lua_pushnil(L);
 		return 1;
 	}
-	lbox_bsdsocket_push_addr(L, (const struct sockaddr *)&addr, len);
+	luaL_pushsockaddr(L, (const struct sockaddr *)&addr, len);
 	lbox_bsdsocket_update_proto_type(L, fh);
 	return 1;
 }
@@ -768,7 +645,7 @@ lbox_bsdsocket_peername(struct lua_State *L)
 		lua_pushnil(L);
 		return 1;
 	}
-	lbox_bsdsocket_push_addr(L, (const struct sockaddr *)&addr, len);
+	luaL_pushsockaddr(L, (const struct sockaddr *)&addr, len);
 	lbox_bsdsocket_update_proto_type(L, fh);
 	return 1;
 }
@@ -789,7 +666,7 @@ lbox_bsdsocket_accept(struct lua_State *L)
 		return 1;
 	}
 	lua_pushnumber(L, sc);
-	lbox_bsdsocket_push_addr(L, (struct sockaddr *)&fa, len);
+	luaL_pushsockaddr(L, (struct sockaddr *)&fa, len);
 	return 2;
 }
 
@@ -820,7 +697,7 @@ lbox_bsdsocket_recvfrom(struct lua_State *L)
 		return 1;
 	}
 	lua_pushlstring(L, buf, res);
-	lbox_bsdsocket_push_addr(L, (struct sockaddr *)&fa, len);
+	luaL_pushsockaddr(L, (struct sockaddr *)&fa, len);
 	return 2;
 }
 

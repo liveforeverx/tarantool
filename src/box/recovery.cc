@@ -172,6 +172,7 @@ recovery_new(const char *snap_dirname, const char *wal_dirname,
 	r->signature = -1;
 	r->snap_io_rate_limit = UINT64_MAX;
 
+	rlist_create(&r->replica);
 	xdir_create(&r->snap_dir, snap_dirname, SNAP, &r->server_uuid);
 
 	xdir_create(&r->wal_dir, wal_dirname, XLOG, &r->server_uuid);
